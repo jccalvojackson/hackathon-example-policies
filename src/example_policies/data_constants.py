@@ -1,4 +1,6 @@
 # Copyright 2025 Poke & Wiggle GmbH. All rights reserved.
+import torch
+
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,3 +35,25 @@ DUAL_DELTA_LEFT_POS_IDXS = slice(0, 3)
 DUAL_DELTA_LEFT_ROT_IDXS = slice(3, 6)
 DUAL_DELTA_RIGHT_POS_IDXS = slice(6, 9)
 DUAL_DELTA_RIGHT_ROT_IDXS = slice(9, 12)
+
+
+TCP_TORCH_STEP_2 = torch.tensor(
+    [
+        -0.39821743965148926,
+        0.7588139772415161,
+        0.45840808749198914,
+        0.018458731472492218,
+        0.9588937163352966,
+        0.06460884213447571,
+        0.27569523453712463,
+        0.12317447364330292,
+        0.7276370525360107,
+        0.4175536334514618,
+        -0.04559018462896347,
+        -0.9448632001876831,
+        -0.0346456877887249,
+        0.322420209646225,
+        0,
+        0,
+    ]
+)[None, :]
