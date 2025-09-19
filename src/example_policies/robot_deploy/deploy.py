@@ -72,6 +72,7 @@ def inference_loop(
 ):
     # Start with policy 1
     current_policy = policy1
+    current_policy_name = "Policy 1"
 
     robot_interface = RobotInterface(service_stub, cfg)
     model_to_action_trans = ActionTranslator(cfg)
@@ -109,6 +110,7 @@ def inference_loop(
             current_policy = policy2
             print("✅ Successfully switched to Policy 2!")
             switch_flag["switched"] = False  # Prevent multiple switches
+            current_policy_name = "Policy 2"
 
         print(current_policy.config.input_features)
         observation = robot_interface.get_observation(cfg.device, show=False)
@@ -131,6 +133,7 @@ def inference_loop(
             dbg_printer.print(step, observation, action, raw_action=False)
 
             print("switched:", switch_flag["switched"])
+            print(f"current policy: {current_policy_name}")
             robot_interface.send_action(action, model_to_action_trans.action_mode)
             # current_policy._queues["action"].clear()
 
