@@ -28,8 +28,6 @@ from example_policies.robot_deploy.robot_io.robot_service import (
     robot_service_pb2,
     robot_service_pb2_grpc,
 )
-from example_policies.robot_deploy.utils import print_info
-from example_policies.robot_deploy.utils.action_mode import ActionMode
 
 
 def keyboard_listener(switch_flag):
@@ -96,6 +94,14 @@ def inference_loop(
 
         # Check if we need to switch policies
         if switch_flag["switched"]:
+            # Clear queue by re-preparing current execution mode
+            prepare_request = robot_service_pb2.PrepareExecutionRequest()
+            prepare_request.execution_mode = (
+                robot_service_pb2.ExecutionMode.EXECUTION_MODE_CARTESIAN_TARGET_QUEUE
+            )
+            service_stub.PrepareExecution(prepare_request)
+            print("🗑️  Queue cleared before policy switch")
+
             current_policy = policy2
             print("✅ Successfully switched to Policy 2!")
             switch_flag["switched"] = False  # Prevent multiple switches
