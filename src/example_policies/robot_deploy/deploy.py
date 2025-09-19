@@ -60,7 +60,7 @@ def keyboard_listener(switch_flag):
                 break
 
 
-MINIMUM_X_LEFT_ARM = -0.3
+MINIMUM_X_LEFT_ARM = -0.4
 
 
 def inference_loop(
