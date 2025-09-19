@@ -9,8 +9,8 @@ CHECKPOINT_DIR = pathlib.Path("outputs/vastai/125000/pretrained_model")
 CHECKPOINT_DIR_2 = pathlib.Path("outputs/mh2_ckp_step_2/115000/pretrained_model")
 wandb_checkpoint_path = None
 # data/output/checkpoints/last/pretrained_model
-last_checkpoint_path = pathlib.Path(CHECKPOINT_DIR) / "checkpoints" / "last"
 if wandb_checkpoint_path:
+    last_checkpoint_path = pathlib.Path(wandb_checkpoint_path) / "checkpoints" / "last"
     run = wandb.init()
     artifact = run.use_artifact("jc-cj/uncategorized/060000:v0", type="dataset")
     artifact.download(root=str(last_checkpoint_path))
@@ -27,17 +27,22 @@ print(f"Robot server endpoint: {SERVER_ENDPOINT}")
 print(f"Inference frequency: {INFERENCE_FREQUENCY_HZ} Hz")
 
 
-policy1, cfg = policy_loader.load_policy(CHECKPOINT_DIR)
-policy2, _ = policy_loader.load_policy(CHECKPOINT_DIR_2)  # Ignore second config
+# policy1, cfg = policy_loader.load_policy(CHECKPOINT_DIR)
+policy2, cfg = policy_loader.load_policy(CHECKPOINT_DIR_2)  # Ignore second config
 
 print("✅ Both policies loaded successfully!")
 
 
 # Change the device on the config, not the policy!!
 cfg.device = "cuda"
-policy1.to(cfg.device)  # or "cpu"
+# policy1.to(cfg.device)  # or "cpu"
 policy2.to(cfg.device)  # or "cpu"
 # policy.n_action_steps = 15  # Number of actions to predict in each forward pass
 
 
-deploy_policy(policy1, policy2, cfg, hz=INFERENCE_FREQUENCY_HZ, server=SERVER_ENDPOINT)
+deploy_policy(
+    policy2,
+    cfg=cfg,
+    hz=INFERENCE_FREQUENCY_HZ,
+    server=SERVER_ENDPOINT,
+)
