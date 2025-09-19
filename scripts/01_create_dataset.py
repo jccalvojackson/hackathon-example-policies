@@ -44,7 +44,7 @@ OUTPUT_DIR = pathlib.Path("data/lerobot/step_1_tcp_recovery")
 TASK_LABEL = "step_1"
 
 cfg = PipelineConfig(
-    include_joint_positions=True,
+    include_joint_positions=False,
     task_name=TASK_LABEL,
     # Observation features to include in the dataset.
     include_tcp_poses=True,
