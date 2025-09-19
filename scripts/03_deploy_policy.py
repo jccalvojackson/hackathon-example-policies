@@ -42,7 +42,7 @@ policy2.to(cfg.device)  # or "cpu"
 
 deploy_policy(
     policy1,
-    policy2=policy2,
+    # policy2=policy2,
     cfg=cfg,
     hz=INFERENCE_FREQUENCY_HZ,
     server=SERVER_ENDPOINT,
