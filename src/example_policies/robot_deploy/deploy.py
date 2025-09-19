@@ -115,6 +115,7 @@ def inference_loop(
             print("\n=== ABSOLUTE ROBOT COMMANDS ===")
             dbg_printer.print(step, observation, action, raw_action=False)
 
+            print("switched:", switch_flag["switched"])
             robot_interface.send_action(action, model_to_action_trans.action_mode)
             # current_policy._queues["action"].clear()
 
