@@ -121,6 +121,8 @@ def inference_loop(
                 dc.TCP_TORCH_STEP_2,
                 ActionMode.ABS_TCP,
             )
+            # sleep for 3 seconds
+            time.sleep(3)
 
             current_policy = policy2
             print("✅ Successfully switched to Policy 2!")
