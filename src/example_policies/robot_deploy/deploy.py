@@ -73,7 +73,8 @@ POLICY_2_NAME = "Policy 2"
 
 def inference_loop(
     policy1,
-    policy2,
+    *,
+    policy2=None,
     cfg,
     hz: float,
     service_stub: robot_service_pb2_grpc.RobotServiceStub,
@@ -93,13 +94,14 @@ def inference_loop(
     switch_flag = {"switched": False, "done": False}
 
     # Start keyboard listener thread
-    keyboard_thread = threading.Thread(
-        target=keyboard_listener, args=(switch_flag,), daemon=True
-    )
-    keyboard_thread.start()
+    if policy2 is not None:
+        keyboard_thread = threading.Thread(
+            target=keyboard_listener, args=(switch_flag,), daemon=True
+        )
+        keyboard_thread.start()
 
+        print("⌨️  Press SPACE to switch to Policy 2")
     print("🤖 Starting inference loop with Policy 1...")
-    print("⌨️  Press SPACE to switch to Policy 2")
     period = 1.0 / hz
 
     while not done:
@@ -136,11 +138,11 @@ def inference_loop(
                 action[0, LEFT_X_COORD_INDEX],
                 min=MINIMUM_X_LEFT_ARM,
             )
-            if current_policy_name == POLICY_2_NAME:
-                action[0, RIGHT_Z_COORD_INDEX] = torch.clamp(
-                    action[0, RIGHT_Z_COORD_INDEX],
-                    min=MINIMUM_Z_RIGHT_ARM,
-                )
+            # if current_policy_name == POLICY_2_NAME:
+            action[0, RIGHT_Z_COORD_INDEX] = torch.clamp(
+                action[0, RIGHT_Z_COORD_INDEX],
+                min=MINIMUM_Z_RIGHT_ARM,
+            )
 
             print("\n=== ABSOLUTE ROBOT COMMANDS ===")
             dbg_printer.print(step, observation, action, raw_action=False)
