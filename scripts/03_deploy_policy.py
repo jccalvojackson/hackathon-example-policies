@@ -6,7 +6,7 @@ from example_policies.robot_deploy.deploy import deploy_policy
 
 # CHECKPOINT_DIR = pathlib.Path("outputs/mh2_ckp_step_1_and_2/100000/pretrained_model")
 CHECKPOINT_DIR = pathlib.Path("outputs/vastai/080000/pretrained_model")
-CHECKPOINT_DIR_2 = pathlib.Path("outputs/mh2_ckp_step_1_and_2/100000/pretrained_model")
+CHECKPOINT_DIR_2 = pathlib.Path("outputs/mh2_ckp_step_2/115000/pretrained_model")
 wandb_checkpoint_path = None
 # data/output/checkpoints/last/pretrained_model
 last_checkpoint_path = pathlib.Path(CHECKPOINT_DIR) / "checkpoints" / "last"
