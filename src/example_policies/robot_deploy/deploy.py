@@ -228,7 +228,7 @@ def deploy_single_policy(policy, cfg, hz: float, server: str):
         print("Connection closed.")
 
 
-def deploy_policy(policy1, policy2, cfg, hz: float, server: str):
+def deploy_policy(policy1, *, policy2=None, cfg, hz: float, server: str):
     channel = grpc.insecure_channel(server)
     stub = robot_service_pb2_grpc.RobotServiceStub(channel)
     try:
