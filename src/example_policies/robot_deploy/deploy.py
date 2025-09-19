@@ -232,7 +232,13 @@ def deploy_policy(policy1, *, policy2=None, cfg, hz: float, server: str):
     channel = grpc.insecure_channel(server)
     stub = robot_service_pb2_grpc.RobotServiceStub(channel)
     try:
-        inference_loop(policy1, policy2, cfg, hz, stub)
+        inference_loop(
+            policy1,
+            policy2=policy2,
+            cfg=cfg,
+            hz=hz,
+            service_stub=stub,
+        )
     except Exception as e:
         print(f"Error occurred: {e}")
         raise e
