@@ -62,7 +62,7 @@ def keyboard_listener(switch_flag):
 
 MINIMUM_X_LEFT_ARM = -0.4
 
-MINIMUM_Z_RIGHT_ARM = 0.23
+MINIMUM_Z_RIGHT_ARM = 0.22
 
 LEFT_X_COORD_INDEX = dc.DUAL_LEFT_POS_IDXS.start
 RIGHT_Z_COORD_INDEX = dc.DUAL_RIGHT_POS_IDXS.stop - 1
