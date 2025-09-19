@@ -60,7 +60,7 @@ def keyboard_listener(switch_flag):
                 break
 
 
-MINIMUM_X_LEFT_ARM = -0.4
+MINIMUM_X_LEFT_ARM = -10
 
 MINIMUM_Z_RIGHT_ARM = 0.22
 
