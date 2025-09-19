@@ -20,6 +20,7 @@ from pathlib import Path
 import grpc
 import torch
 
+from example_policies import data_constants as dc
 from example_policies.robot_deploy.action_translator import ActionTranslator
 from example_policies.robot_deploy.debug_helpers.utils import print_info
 from example_policies.robot_deploy.policy_loader import load_policy
@@ -57,6 +58,9 @@ def keyboard_listener(switch_flag):
                 switch_flag["switched"] = True
                 print("\n🔄 Switching to Policy 2!")
                 break
+
+
+MINIMUM_X_LEFT_ARM = -0.3
 
 
 def inference_loop(
@@ -116,7 +120,12 @@ def inference_loop(
                 print("\n=== RAW MODEL PREDICTION ===")
                 dbg_printer.print(step, observation, action, raw_action=True)
                 print()
-            action = model_to_action_trans.translate(action, observation)
+            # left arm to -0.3
+            action: torch.Tensor = model_to_action_trans.translate(action, observation)
+            action[0, dc.DUAL_LEFT_POS_IDXS] = torch.clamp(
+                action[0, dc.DUAL_LEFT_POS_IDXS],
+                min=MINIMUM_X_LEFT_ARM,
+            )
 
             print("\n=== ABSOLUTE ROBOT COMMANDS ===")
             dbg_printer.print(step, observation, action, raw_action=False)
