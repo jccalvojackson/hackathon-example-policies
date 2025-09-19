@@ -62,6 +62,14 @@ def keyboard_listener(switch_flag):
 
 MINIMUM_X_LEFT_ARM = -0.4
 
+MINIMUM_Z_RIGHT_ARM = 0.23
+
+LEFT_X_COORD_INDEX = dc.DUAL_LEFT_POS_IDXS.start
+RIGHT_Z_COORD_INDEX = dc.DUAL_RIGHT_POS_IDXS.stop - 1
+
+POLICY_1_NAME = "Policy 1"
+POLICY_2_NAME = "Policy 2"
+
 
 def inference_loop(
     policy1,
@@ -72,7 +80,7 @@ def inference_loop(
 ):
     # Start with policy 1
     current_policy = policy1
-    current_policy_name = "Policy 1"
+    current_policy_name = POLICY_1_NAME
 
     robot_interface = RobotInterface(service_stub, cfg)
     model_to_action_trans = ActionTranslator(cfg)
@@ -110,7 +118,7 @@ def inference_loop(
             current_policy = policy2
             print("✅ Successfully switched to Policy 2!")
             switch_flag["switched"] = False  # Prevent multiple switches
-            current_policy_name = "Policy 2"
+            current_policy_name = POLICY_2_NAME
 
         print(current_policy.config.input_features)
         observation = robot_interface.get_observation(cfg.device, show=False)
@@ -124,10 +132,15 @@ def inference_loop(
                 print()
             # left arm to -0.3
             action: torch.Tensor = model_to_action_trans.translate(action, observation)
-            action[0, dc.DUAL_LEFT_POS_IDXS] = torch.clamp(
-                action[0, dc.DUAL_LEFT_POS_IDXS],
+            action[0, LEFT_X_COORD_INDEX] = torch.clamp(
+                action[0, LEFT_X_COORD_INDEX],
                 min=MINIMUM_X_LEFT_ARM,
             )
+            if current_policy_name == POLICY_2_NAME:
+                action[0, RIGHT_Z_COORD_INDEX] = torch.clamp(
+                    action[0, RIGHT_Z_COORD_INDEX],
+                    min=MINIMUM_Z_RIGHT_ARM,
+                )
 
             print("\n=== ABSOLUTE ROBOT COMMANDS ===")
             dbg_printer.print(step, observation, action, raw_action=False)
