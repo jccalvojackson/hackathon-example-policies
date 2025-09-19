@@ -19,9 +19,10 @@ from pathlib import Path
 
 import grpc
 import torch
+from lerobot.constants import TCP_TORCH_STEP_2
 
 from example_policies import data_constants as dc
-from example_policies.robot_deploy.action_translator import ActionTranslator
+from example_policies.robot_deploy.action_translator import ActionMode, ActionTranslator
 from example_policies.robot_deploy.debug_helpers.utils import print_info
 from example_policies.robot_deploy.policy_loader import load_policy
 from example_policies.robot_deploy.robot_io.robot_interface import RobotInterface
@@ -116,6 +117,11 @@ def inference_loop(
             )
             service_stub.PrepareExecution(prepare_request)
             print("🗑️  Queue cleared before policy switch")
+            print("setting initial position for step 2")
+            robot_interface.send_action(
+                TCP_TORCH_STEP_2,
+                ActionMode.ABS_TCP,
+            )
 
             current_policy = policy2
             print("✅ Successfully switched to Policy 2!")
