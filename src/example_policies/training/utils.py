@@ -44,6 +44,7 @@ def create_dataset_config(
         root=dataset_root_dir,
         episodes=episode_list,
         image_transforms=image_transforms,
+        video_backend="pyav",
     )
 
     meta_data = LeRobotDatasetMetadata(
