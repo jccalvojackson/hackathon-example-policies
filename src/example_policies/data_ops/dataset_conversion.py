@@ -117,7 +117,7 @@ def convert_episodes(
             print(
                 f"Skipping faulty file: {episode_path} due to {type(e).__name__}: {e}"
             )
-            continue
+            raise e
 
     with open(output_dir / "meta" / "episode_mapping.json", "w", encoding="utf-8") as f:
         json.dump(episode_counter_path_dict, f, indent=2)
