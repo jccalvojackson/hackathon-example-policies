@@ -274,9 +274,37 @@ def monkey_patch_dinov3_support():
     ACT.__init__ = patched_act_init
 
 
+class ACTActionHead(nn.Module):
+    """Action head that applies sigmoid to the last action dimension to force it to a fixed range [0, 1]."""
+
+    def __init__(self, input_dim: int, output_dim: int):
+        super().__init__()
+        self.linear = nn.Linear(input_dim, output_dim)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass applying sigmoid to the last action dimension."""
+        actions = self.linear(x)
+        # Apply sigmoid to the last dimension to force it to [0, 1] range
+        actions[..., -1] = torch.sigmoid(actions[..., -1])
+        return actions
+
+
+def monkey_patch_action_head_reward():
+    original_act_init = ACT.__init__
+
+    def patched_act_init(self, config: ACTConfig):
+        original_act_init(self, config)
+        self.action_head = ACTActionHead(
+            config.dim_model, config.action_feature.shape[0]
+        )
+
+    ACT.__init__ = patched_act_init
+
+
 def apply_patches():
     monkey_patch_policy_factory()
     monkey_patch_dataset()
     monkey_patch_save_checkpoint()
     monkey_patch_wandb()
+    monkey_patch_action_head_reward()
     # monkey_patch_dinov3_support()
