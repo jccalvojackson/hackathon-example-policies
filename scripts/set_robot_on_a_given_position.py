@@ -10,6 +10,7 @@ from example_policies.robot_deploy.robot_io.robot_interface import (
     RobotInterface,
 )
 from example_policies.robot_deploy.robot_io.robot_service import (
+    robot_service_pb2,
     robot_service_pb2_grpc,
 )
 
@@ -22,6 +23,11 @@ class DummyConfig:
 def main(server: str, action: torch.Tensor):
     channel = grpc.insecure_channel(server)
     stub = robot_service_pb2_grpc.RobotServiceStub(channel)
+    prepare_request = robot_service_pb2.PrepareExecutionRequest()
+    prepare_request.execution_mode = (
+        robot_service_pb2.ExecutionMode.EXECUTION_MODE_CARTESIAN_TARGET_QUEUE
+    )
+    stub.PrepareExecution(prepare_request)
     cfg = DummyConfig()
     robot_interface = RobotInterface(stub, cfg)
     robot_interface.send_action(action, ActionMode.ABS_TCP)
