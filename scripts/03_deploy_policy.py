@@ -11,6 +11,10 @@ from example_policies.robot_deploy.robot_io.robot_interface import (
 CHECKPOINT_DIR = pathlib.Path("outputs/vastai/125000/pretrained_model")
 CHECKPOINT_DIR_2 = pathlib.Path("outputs/mh2_ckp_step_2_tcp/075000/pretrained_model")
 CHECKPOINT_DIR_3 = pathlib.Path("outputs/mh2_ckp_step_3_tcp/115000/pretrained_model")
+CHECKPOINT_DIR_3 = pathlib.Path(
+    "outputs/mh2_ckp_step_1_2_3_tcp_smolvla/060000/pretrained_model"
+)
+
 
 wandb_checkpoint_path = None
 # data/output/checkpoints/last/pretrained_model
