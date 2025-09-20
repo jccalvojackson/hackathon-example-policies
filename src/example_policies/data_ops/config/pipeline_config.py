@@ -205,6 +205,8 @@ def build_features(config: PipelineConfig) -> Dict[str, Any]:
         state_names.extend([f"last_command_left_{i}" for i in range(7)])
         state_names.extend([f"last_command_right_{i}" for i in range(7)])
 
+    state_names.extend(["task_label_0", "task_label_1", "task_label_2"])
+
     features["observation.state"] = {
         "dtype": "float32",
         "shape": (len(state_names),),

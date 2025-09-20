@@ -100,12 +100,24 @@ class DatasetWriter:
         frame = None
         performed_save = False
 
+        state_keys = ["task_label_0", "task_label_1", "task_label_2"]
         for target in target_datasets:
             if target in self.datasets:
                 if frame is None:
                     # Lazily parse the frame only if it's needed for at least one dataset
                     frame = self.frame_parser.parse_frame(frame_buffer)
                     frame = self.frame_assembler.assemble(frame)
+                    # add one hot encoded per task
+                    for key in state_keys:
+                        frame[key] = 0
+                    if self.cfg.task_name == "step_1":
+                        frame["task_label_0"] = 1
+                    elif self.cfg.task_name == "step_2":
+                        frame["task_label_1"] = 1
+                    elif self.cfg.task_name == "step_3":
+                        frame["task_label_2"] = 1
+                    else:
+                        raise ValueError(f"Unsupported task name: {self.cfg.task_name}")
                 self.datasets[target].add_frame(frame, task=self.cfg.task_name)
                 self.dataset_frame_counter[target] += 1
                 performed_save = True
