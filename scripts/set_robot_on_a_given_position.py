@@ -33,7 +33,6 @@ def main(server: str, action: torch.Tensor):
     robot_interface.send_action(
         action,
         ActionMode.ABS_TCP,
-        RobotClient.CART_QUEUE,
     )
 
 
