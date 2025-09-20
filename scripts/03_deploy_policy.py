@@ -6,7 +6,9 @@ from example_policies.robot_deploy.deploy import deploy_policy
 
 # CHECKPOINT_DIR = pathlib.Path("outputs/mh2_ckp_step_1_and_2/100000/pretrained_model")
 CHECKPOINT_DIR = pathlib.Path("outputs/vastai/125000/pretrained_model")
-CHECKPOINT_DIR_2 = pathlib.Path("outputs/mh2_ckp_step_2/115000/pretrained_model")
+CHECKPOINT_DIR_2 = pathlib.Path(
+    "outputs/mh2_ckp_step_1_tcp_no_joint/210000/pretrained_model"
+)
 wandb_checkpoint_path = None
 # data/output/checkpoints/last/pretrained_model
 if wandb_checkpoint_path:
@@ -19,7 +21,7 @@ if wandb_checkpoint_path:
 SERVER_ENDPOINT = "192.168.0.207:50051"
 
 # Inference frequency in Hz. Higher values result in smoother but potentially faster movements.
-INFERENCE_FREQUENCY_HZ: float = 5.0
+INFERENCE_FREQUENCY_HZ: float = 4.0
 
 print(f"Attempting to load policy 1 from: {CHECKPOINT_DIR}")
 print(f"Attempting to load policy 2 from: {CHECKPOINT_DIR_2}")
@@ -37,12 +39,12 @@ print("✅ Both policies loaded successfully!")
 cfg.device = "cuda"
 policy1.to(cfg.device)  # or "cpu"
 policy2.to(cfg.device)  # or "cpu"
-# policy.n_action_steps = 15  # Number of actions to predict in each forward pass
+policy2.n_action_steps = 10  # Number of actions to predict in each forward pass
 
 
 deploy_policy(
-    policy1,
-    policy2=policy2,
+    policy2,
+    # policy2=policy2,
     cfg=cfg,
     hz=INFERENCE_FREQUENCY_HZ,
     server=SERVER_ENDPOINT,
