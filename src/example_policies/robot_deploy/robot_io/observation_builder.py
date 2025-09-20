@@ -89,7 +89,7 @@ class ObservationBuilder:
             self.include_last_commands,
         )
         if self.include_last_commands:
-            state_array.append(last_command)
+            state_array.append(last_command[:-1])
 
         full_state = np.concatenate(state_array).astype(np.float32)
 
