@@ -8,7 +8,9 @@ from example_policies.robot_deploy.robot_io.robot_interface import (
 )
 
 # CHECKPOINT_DIR = pathlib.Path("outputs/mh2_ckp_step_1_and_2/100000/pretrained_model")
-CHECKPOINT_DIR = pathlib.Path("outputs/mh2_ckp_step_1_with_reward/095000")
+CHECKPOINT_DIR = pathlib.Path(
+    "outputs/mh2_ckp_step_1_with_reward/095000/pretrained_model"
+)
 CHECKPOINT_DIR_2 = pathlib.Path("outputs/mh2_ckp_step_2_tcp/075000/pretrained_model")
 CHECKPOINT_DIR_3 = pathlib.Path("outputs/mh2_ckp_step_3_tcp/115000/pretrained_model")
 
