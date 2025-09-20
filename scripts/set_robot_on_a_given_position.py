@@ -23,11 +23,11 @@ class DummyConfig:
 def main(server: str, action: torch.Tensor):
     channel = grpc.insecure_channel(server)
     stub = robot_service_pb2_grpc.RobotServiceStub(channel)
-    prepare_request = robot_service_pb2.PrepareExecutionRequest()
-    prepare_request.execution_mode = (
-        robot_service_pb2.ExecutionMode.EXECUTION_MODE_CARTESIAN_TARGET_QUEUE
-    )
-    stub.PrepareExecution(prepare_request)
+    # prepare_request = robot_service_pb2.PrepareExecutionRequest()
+    # prepare_request.execution_mode = (
+    #     robot_service_pb2.ExecutionMode.EXECUTION_MODE_CARTESIAN_TARGET_QUEUE
+    # )
+    # stub.PrepareExecution(prepare_request)
     cfg = DummyConfig()
     robot_interface = RobotInterface(stub, cfg)
     robot_interface.send_action(action, ActionMode.ABS_TCP)
