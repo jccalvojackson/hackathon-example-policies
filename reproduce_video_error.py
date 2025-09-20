@@ -45,25 +45,55 @@ def main():
 
     print("Starting iteration through dataloader...")
 
+    ep = args.episode
+    found_any = False
+    batch_count = 0
+
     try:
-        for i, batch in enumerate(dataloader):
-            print(f"Processing batch {i}")
+        for batch in dataloader:
+            batch_count += 1
 
-            # Check episode index
-            if "episode_index" in batch:
-                ep_idx = int(batch["episode_index"].view(-1)[0].item())
-                print(f"Episode index: {ep_idx}")
+            # Check episode index (matching validate_with_plot.py logic)
+            b_ep = batch.get("episode_index")
+            if b_ep is None:
+                raise KeyError("Expected key 'episode_index' in batch.")
+            b_ep = int(b_ep.view(-1)[0].item())
 
-                if ep_idx == args.episode:
-                    print(f"Found target episode {args.episode}")
-                elif ep_idx > args.episode:
-                    print(f"Reached episode {ep_idx}, stopping")
-                    break
+            print(f"Processing batch {batch_count}, episode: {b_ep}")
 
-            # The error typically occurs here when trying to access video data
-            if i > 10:  # Limit iterations for testing
-                print("Processed 10 batches successfully, stopping")
+            if b_ep < ep:
+                continue
+            if b_ep > ep:
                 break
+
+            found_any = True
+            print(f"✅ Found target episode {ep}")
+
+            # Print available keys for debugging
+            print(f"  - Available keys: {list(batch.keys())}")
+
+            # Access more data fields that might trigger video decoding
+            try:
+                if "observation.images.cam_high" in batch:
+                    print(
+                        f"  - Image data shape: {batch['observation.images.cam_high'].shape}"
+                    )
+                if "action" in batch:
+                    print(f"  - Action data shape: {batch['action'].shape}")
+                if "timestamp" in batch:
+                    print(f"  - Timestamp: {batch['timestamp'].item()}")
+
+                # Try to access all image observations which might trigger video loading
+                for key in batch.keys():
+                    if "observation.images" in key and hasattr(batch[key], "shape"):
+                        print(f"  - {key} shape: {batch[key].shape}")
+
+            except Exception as access_error:
+                print(f"  - Error accessing batch data: {access_error}")
+                raise  # Re-raise to trigger the outer exception handler
+
+        if not found_any:
+            print(f"❌ Never found episode {ep} in dataset")
 
     except RuntimeError as e:
         print(f"\n🔥 REPRODUCED ERROR: {e}")
