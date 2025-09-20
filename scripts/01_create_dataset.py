@@ -34,7 +34,7 @@ from example_policies.data_ops.config.pipeline_config import ActionLevel, Pipeli
 
 # --- Paths ---
 # TODO: Set the input directory containing your .mcap files.
-RAW_DATA_DIR = pathlib.Path("data/step_1_flip")
+RAW_DATA_DIR = pathlib.Path("data/step_2_flip")
 # RAW_DATA_DIR = pathlib.Path("data/step_2_flip_pre_clean")
 # RAW_DATA_DIR = pathlib.Path("data/step_3_pre_clean")
 

@@ -47,7 +47,16 @@ class StateAssembler:
             state_components.append(
                 np.concatenate([last_action.left, last_action.right])
             )
-
+        one_hot = np.zeros(3)
+        if self.config.task_name == "step_1":
+            one_hot[0] = 1
+        elif self.cfg.task_name == "step_2":
+            one_hot[1] = 1
+        elif self.config.task_name == "step_3":
+            one_hot[2] = 1
+        else:
+            raise ValueError(f"Unsupported task name: {self.config.task_name}")
+        state_components.append(one_hot)
         return {
             "observation.state": np.concatenate(state_components).astype(np.float32)
         }
