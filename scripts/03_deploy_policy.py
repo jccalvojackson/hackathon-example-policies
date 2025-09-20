@@ -7,6 +7,7 @@ from example_policies.robot_deploy.deploy import deploy_policy
 # CHECKPOINT_DIR = pathlib.Path("outputs/mh2_ckp_step_1_and_2/100000/pretrained_model")
 CHECKPOINT_DIR = pathlib.Path("outputs/vastai/125000/pretrained_model")
 CHECKPOINT_DIR_2 = pathlib.Path("outputs/mh2_ckp_step_2_tcp/075000/pretrained_model")
+CHECKPOINT_DIR_3 = pathlib.Path("outputs/mh2_ckp_step_3/120000/pretrained_model")
 
 wandb_checkpoint_path = None
 # data/output/checkpoints/last/pretrained_model
@@ -30,6 +31,7 @@ print(f"Inference frequency: {INFERENCE_FREQUENCY_HZ} Hz")
 
 policy1, cfg1 = policy_loader.load_policy(CHECKPOINT_DIR)
 policy2, cfg2 = policy_loader.load_policy(CHECKPOINT_DIR_2)
+policy3, cfg3 = policy_loader.load_policy(CHECKPOINT_DIR_3)
 
 print("✅ Both policies loaded successfully!")
 
@@ -37,17 +39,20 @@ print("✅ Both policies loaded successfully!")
 # Change the device on both configs, not the policies!!
 cfg1.device = "cuda"
 cfg2.device = "cuda"
+cfg3.device = "cuda"
 policy1.to(cfg1.device)  # or "cpu"
 policy2.to(cfg2.device)  # or "cpu"
+policy3.to(cfg3.device)  # or "cpu"
 policy1.n_action_steps = 10  # Number of actions to predict in each forward pass
 policy2.n_action_steps = 10  # Number of actions to predict in each forward pass
+policy3.n_action_steps = 10  # Number of actions to predict in each forward pass
 
 
 deploy_policy(
-    policy1,
-    policy2=policy2,
-    cfg1=cfg1,
-    cfg2=cfg2,
+    policy3,
+    # policy2=policy2,
+    cfg1=cfg3,
+    # cfg2=cfg2,
     hz=INFERENCE_FREQUENCY_HZ,
     server=SERVER_ENDPOINT,
 )
