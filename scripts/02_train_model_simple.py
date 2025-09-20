@@ -14,7 +14,7 @@ lerobot_patches.apply_patches()
 cfg = original_act_config(
     # repo_id=repo_id,
     batch_size=16,
-    dataset_root_dir="data/lerobot/mh2_step_2_tcp",
+    dataset_root_dir="data/lerobot/mh2_step_3_tcp",
 )
 
 # cfg_smolvla = smolvla_config(
