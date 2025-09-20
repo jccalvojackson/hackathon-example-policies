@@ -34,7 +34,7 @@ from example_policies.data_ops.config.pipeline_config import ActionLevel, Pipeli
 
 # --- Paths ---
 # TODO: Set the input directory containing your .mcap files.
-RAW_DATA_DIR = pathlib.Path("/data/20250919_094642/episodes/")
+RAW_DATA_DIR = pathlib.Path("data/test_episodes/episodes")
 
 # TODO: Set your desired output directory name.
 OUTPUT_DIR = pathlib.Path("data/lerobot/debug_data")
