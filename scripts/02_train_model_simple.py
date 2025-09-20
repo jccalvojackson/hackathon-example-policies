@@ -45,7 +45,7 @@ diff_cfg = diffusion_config(
 from example_policies.train import train
 
 # train(cfg_smolvla)
-train(cfg)
+train(diff_cfg)
 
 #
 
