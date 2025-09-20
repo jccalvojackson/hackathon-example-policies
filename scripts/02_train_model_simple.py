@@ -11,17 +11,17 @@ from example_policies.config_factory import (
 lerobot_patches.apply_patches()
 
 
-# cfg = original_act_config(
-#     # repo_id=repo_id,
-#     batch_size=16,
-#     dataset_root_dir="data/lerobot/step_3_tcp",
-# )
-
-cfg_smolvla = smolvla_config(
+cfg = original_act_config(
+    # repo_id=repo_id,
     batch_size=16,
-    dataset_root_dir="data/lerobot/mh2_step_1_2_3_tcp",
-    policy_kwargs={"max_state_dim": 46},
+    dataset_root_dir="data/lerobot/step_3_tcp",
 )
+
+# cfg_smolvla = smolvla_config(
+#     batch_size=16,
+#     dataset_root_dir="data/lerobot/mh2_step_1_2_3_tcp",
+#     policy_kwargs={"max_state_dim": 46},
+# )
 # You can specify additional keywords by looking at the lerobot configuration code, e.g. `lerobot.policies.act.configuration_act`
 # and then adapt the code cell accordingly:
 # ```python
@@ -40,7 +40,8 @@ cfg_smolvla = smolvla_config(
 
 from example_policies.train import train
 
-train(cfg_smolvla)
+# train(cfg_smolvla)
+train(cfg)
 
 #
 
