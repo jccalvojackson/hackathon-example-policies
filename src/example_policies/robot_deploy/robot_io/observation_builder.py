@@ -89,7 +89,10 @@ class ObservationBuilder:
             self.include_last_commands,
         )
         if self.include_last_commands:
-            state_array.append(last_command[:-1])
+            # if not even
+            if len(last_command) % 2 != 0:
+                last_command = last_command[:-1]
+            state_array.append(last_command)
 
         full_state = np.concatenate(state_array).astype(np.float32)
 
