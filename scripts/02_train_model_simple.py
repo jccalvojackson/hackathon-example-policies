@@ -16,7 +16,7 @@ cfg = original_act_config(
     batch_size=16,
     dataset_root_dir="data/lerobot/mh2_step_3_tcp",
 )
-diffusion_config(
+diff_cfg = diffusion_config(
     batch_size=16,
     dataset_root_dir="data/lerobot/mh2_step_3_tcp",
 )
