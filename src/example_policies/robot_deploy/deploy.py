@@ -23,7 +23,10 @@ import torch
 from example_policies import data_constants as dc
 from example_policies.robot_deploy.action_translator import ActionMode, ActionTranslator
 from example_policies.robot_deploy.policy_loader import load_policy
-from example_policies.robot_deploy.robot_io.robot_interface import RobotInterface
+from example_policies.robot_deploy.robot_io.robot_interface import (
+    RobotClient,
+    RobotInterface,
+)
 from example_policies.robot_deploy.robot_io.robot_service import (
     robot_service_pb2,
     robot_service_pb2_grpc,
@@ -79,8 +82,11 @@ def inference_loop(
     cfg2=None,
     hz: float,
     service_stub: robot_service_pb2_grpc.RobotServiceStub,
+    controller: str = None,
 ):
     # Use cfg1 for cfg2 if not provided (backward compatibility)
+    if controller is None:
+        controller = RobotClient.CART_WAYPOINT
     if cfg2 is None:
         cfg2 = cfg1
 
@@ -136,6 +142,7 @@ def inference_loop(
             current_robot_interface.send_action(
                 dc.TCP_TORCH_STEP_2,
                 ActionMode.ABS_TCP,
+                controller,
             )
             # sleep for 3 seconds
             time.sleep(3)
@@ -262,7 +269,16 @@ def deploy_single_policy(policy, cfg, hz: float, server: str):
         print("Connection closed.")
 
 
-def deploy_policy(policy1, *, policy2=None, cfg1, cfg2=None, hz: float, server: str):
+def deploy_policy(
+    policy1,
+    *,
+    policy2=None,
+    cfg1,
+    cfg2=None,
+    hz: float,
+    server: str,
+    controller: str = None,
+):
     channel = grpc.insecure_channel(server)
     stub = robot_service_pb2_grpc.RobotServiceStub(channel)
     try:
@@ -273,6 +289,7 @@ def deploy_policy(policy1, *, policy2=None, cfg1, cfg2=None, hz: float, server: 
             cfg2=cfg2,
             hz=hz,
             service_stub=stub,
+            controller=controller,
         )
     except Exception as e:
         print(f"Error occurred: {e}")

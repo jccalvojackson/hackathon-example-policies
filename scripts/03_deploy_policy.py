@@ -3,6 +3,9 @@ import pathlib
 import wandb
 from example_policies.robot_deploy import policy_loader
 from example_policies.robot_deploy.deploy import deploy_policy
+from example_policies.robot_deploy.robot_io.robot_interface import (
+    RobotClient,
+)
 
 # CHECKPOINT_DIR = pathlib.Path("outputs/mh2_ckp_step_1_and_2/100000/pretrained_model")
 CHECKPOINT_DIR = pathlib.Path("outputs/vastai/125000/pretrained_model")
@@ -55,4 +58,5 @@ deploy_policy(
     # cfg2=cfg2,
     hz=INFERENCE_FREQUENCY_HZ,
     server=SERVER_ENDPOINT,
+    controller=RobotClient.CART_WAYPOINT,
 )
