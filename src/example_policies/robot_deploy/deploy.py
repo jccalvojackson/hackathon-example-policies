@@ -83,6 +83,7 @@ def inference_loop(
     hz: float,
     service_stub: robot_service_pb2_grpc.RobotServiceStub,
     controller: str = None,
+    task: str = None,
 ):
     # Use cfg1 for cfg2 if not provided (backward compatibility)
     if controller is None:
@@ -161,9 +162,10 @@ def inference_loop(
         observation = current_robot_interface.get_observation(
             current_cfg.device, show=False
         )
-        print(observation)
 
         if observation:
+            if task is not None:
+                observation["task"] = task
             # Predict the next action with respect to the current observation
             with torch.inference_mode():
                 action = current_policy.select_action(observation)
@@ -279,6 +281,7 @@ def deploy_policy(
     hz: float,
     server: str,
     controller: str = None,
+    task: str = None,
 ):
     channel = grpc.insecure_channel(server)
     stub = robot_service_pb2_grpc.RobotServiceStub(channel)
@@ -291,6 +294,7 @@ def deploy_policy(
             hz=hz,
             service_stub=stub,
             controller=controller,
+            task=task,
         )
     except Exception as e:
         print(f"Error occurred: {e}")
