@@ -45,7 +45,7 @@ class RobotClient:
 
         queue_target_request = robot_service_pb2.EnqueueCartesianTargetsRequest()
         queue_target_request.cartesian_targets.append(cart_target)
-        # response = self.stub.EnqueueCartesianTargets(queue_target_request)
+        response = self.stub.EnqueueCartesianTargets(queue_target_request)
         return response
 
     def send_cart_direct_target(self, cart_target: robot_service_pb2.CartesianTarget):
