@@ -50,7 +50,7 @@ class StateAssembler:
         one_hot = np.zeros(3)
         if self.config.task_name == "step_1":
             one_hot[0] = 1
-        elif self.cfg.task_name == "step_2":
+        elif self.config.task_name == "step_2":
             one_hot[1] = 1
         elif self.config.task_name == "step_3":
             one_hot[2] = 1
