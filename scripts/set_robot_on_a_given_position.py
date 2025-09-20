@@ -30,7 +30,11 @@ def main(server: str, action: torch.Tensor):
     # stub.PrepareExecution(prepare_request)
     cfg = DummyConfig()
     robot_interface = RobotInterface(stub, cfg)
-    robot_interface.send_action(action, ActionMode.ABS_TCP)
+    robot_interface.send_action(
+        action,
+        ActionMode.ABS_TCP,
+        RobotClient.CART_QUEUE,
+    )
 
 
 if __name__ == "__main__":
