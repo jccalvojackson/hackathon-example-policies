@@ -52,9 +52,9 @@ policy3.n_action_steps = 10  # Number of actions to predict in each forward pass
 
 
 deploy_policy(
-    policy3,
+    policy1,
     # policy2=policy2,
-    cfg1=cfg3,
+    cfg1=cfg1,
     # cfg2=cfg2,
     hz=INFERENCE_FREQUENCY_HZ,
     server=SERVER_ENDPOINT,
