@@ -75,17 +75,33 @@ def inference_loop(
     policy1,
     *,
     policy2=None,
-    cfg,
+    cfg1,
+    cfg2=None,
     hz: float,
     service_stub: robot_service_pb2_grpc.RobotServiceStub,
 ):
+    # Use cfg1 for cfg2 if not provided (backward compatibility)
+    if cfg2 is None:
+        cfg2 = cfg1
+
     # Start with policy 1
     current_policy = policy1
     current_policy_name = POLICY_1_NAME
+    current_cfg = cfg1
 
-    robot_interface = RobotInterface(service_stub, cfg)
-    model_to_action_trans = ActionTranslator(cfg)
-    dbg_printer = print_info.InfoPrinter(cfg)
+    dbg_printer_1 = print_info.InfoPrinter(cfg1)
+    dbg_printer_2 = print_info.InfoPrinter(cfg2)
+    # Create robot interfaces and action translators for both policies
+    robot_interface_1 = RobotInterface(service_stub, cfg1)
+    model_to_action_trans_1 = ActionTranslator(cfg1)
+
+    robot_interface_2 = RobotInterface(service_stub, cfg2)
+    model_to_action_trans_2 = ActionTranslator(cfg2)
+
+    # Start with policy 1's components
+    current_robot_interface = robot_interface_1
+    current_model_to_action_trans = model_to_action_trans_1
+    current_dbg_printer = dbg_printer_1
 
     step = 0
     done = False
@@ -117,30 +133,39 @@ def inference_loop(
             service_stub.PrepareExecution(prepare_request)
             print("🗑️  Queue cleared before policy switch")
             print("setting initial position for step 2")
-            robot_interface.send_action(
+            current_robot_interface.send_action(
                 dc.TCP_TORCH_STEP_2,
                 ActionMode.ABS_TCP,
             )
             # sleep for 3 seconds
             time.sleep(3)
 
+            # Switch to policy 2 and its corresponding components
             current_policy = policy2
+            current_cfg = cfg2
+            current_robot_interface = robot_interface_2
+            current_model_to_action_trans = model_to_action_trans_2
+            current_dbg_printer = dbg_printer_2
             print("✅ Successfully switched to Policy 2!")
             switch_flag["switched"] = False  # Prevent multiple switches
             current_policy_name = POLICY_2_NAME
 
         print(current_policy.config.input_features)
-        observation = robot_interface.get_observation(cfg.device, show=False)
+        observation = current_robot_interface.get_observation(
+            current_cfg.device, show=False
+        )
 
         if observation:
             # Predict the next action with respect to the current observation
             with torch.inference_mode():
                 action = current_policy.select_action(observation)
                 print("\n=== RAW MODEL PREDICTION ===")
-                dbg_printer.print(step, observation, action, raw_action=True)
+                current_dbg_printer.print(step, observation, action, raw_action=True)
                 print()
             # left arm to -0.3
-            action: torch.Tensor = model_to_action_trans.translate(action, observation)
+            action: torch.Tensor = current_model_to_action_trans.translate(
+                action, observation
+            )
             action[0, LEFT_X_COORD_INDEX] = torch.clamp(
                 action[0, LEFT_X_COORD_INDEX],
                 min=MINIMUM_X_LEFT_ARM,
@@ -152,11 +177,13 @@ def inference_loop(
             )
 
             print("\n=== ABSOLUTE ROBOT COMMANDS ===")
-            dbg_printer.print(step, observation, action, raw_action=False)
+            current_dbg_printer.print(step, observation, action, raw_action=False)
 
             print("switched:", switch_flag["switched"])
             print(f"current policy: {current_policy_name}")
-            robot_interface.send_action(action, model_to_action_trans.action_mode)
+            current_robot_interface.send_action(
+                action, current_model_to_action_trans.action_mode
+            )
             # current_policy._queues["action"].clear()
 
         # wait for execution to finish
@@ -235,14 +262,15 @@ def deploy_single_policy(policy, cfg, hz: float, server: str):
         print("Connection closed.")
 
 
-def deploy_policy(policy1, *, policy2=None, cfg, hz: float, server: str):
+def deploy_policy(policy1, *, policy2=None, cfg1, cfg2=None, hz: float, server: str):
     channel = grpc.insecure_channel(server)
     stub = robot_service_pb2_grpc.RobotServiceStub(channel)
     try:
         inference_loop(
             policy1,
             policy2=policy2,
-            cfg=cfg,
+            cfg1=cfg1,
+            cfg2=cfg2,
             hz=hz,
             service_stub=stub,
         )
