@@ -162,6 +162,8 @@ def inference_loop(
         observation = current_robot_interface.get_observation(
             current_cfg.device, show=False
         )
+        print(observation)
+        exit(0)
 
         if observation:
             if task is not None:
