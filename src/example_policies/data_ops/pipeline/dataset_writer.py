@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import pathlib
 from typing import Dict
 
+import numpy as np
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
 from ..config import pipeline_config
@@ -52,7 +52,7 @@ class DatasetWriter:
             root=output_dir,
             use_videos=True,
             image_writer_threads=16,
-            image_writer_processes=8,
+            image_writer_processes=0,
             features=features,
         )
 
@@ -87,7 +87,7 @@ class DatasetWriter:
             root=output_dir.with_name(f"{output_dir.name}_{suffix}"),
             use_videos=True,
             image_writer_threads=4,
-            image_writer_processes=2,
+            image_writer_processes=0,
             features=features,
         )
 
@@ -116,6 +116,9 @@ class DatasetWriter:
         performed_save = False
         for dataset_type, dataset in self.datasets.items():
             if self.dataset_frame_counter[dataset_type] > 0:
+                dataset.episode_buffer["action"] = normalize_reward(
+                    dataset.episode_buffer["action"]
+                )
                 dataset.save_episode()
                 performed_save = True
             self.dataset_frame_counter[dataset_type] = 0
@@ -129,3 +132,10 @@ class DatasetWriter:
         for dataset in self.datasets.values():
             dataset.clear_episode_buffer()
         self.reset()
+
+
+def normalize_reward(action_episode_buffer: list[np.ndarray]) -> list[np.ndarray]:
+    total_num_frames = len(action_episode_buffer)
+    for action in action_episode_buffer:
+        action[-1] = action[-1] / total_num_frames
+    return action_episode_buffer

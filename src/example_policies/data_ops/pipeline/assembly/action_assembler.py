@@ -49,9 +49,10 @@ class LastCommand:
 class ActionAssembler:
     def __init__(self, config: PipelineConfig):
         self.config = config
+        self._reward_index = 0
 
     def reset(self):
-        pass
+        self._reward_index = 0
 
     def assemble(self, parsed_frame: dict, last_abs_command: LastCommand | None):
         action_level = self.config.action_level
@@ -65,7 +66,8 @@ class ActionAssembler:
             left_abs = parsed_frame[left_key]
             right_abs = parsed_frame[right_key]
             action_vec = np.concatenate(
-                [left_abs, right_abs, [grip_l, grip_r]], dtype=np.float32
+                [left_abs, right_abs, [grip_l, grip_r], [self._reward_index]],
+                dtype=np.float32,
             )
             new_last = LastCommand(left=left_abs, right=right_abs)
 
@@ -83,12 +85,15 @@ class ActionAssembler:
             right_delta = delta_fn(last_abs_command.right, right_abs)
 
             action_vec = np.concatenate(
-                [left_delta, right_delta, [grip_l, grip_r]], dtype=np.float32
+                [left_delta, right_delta, [grip_l, grip_r], [self._reward_index]],
+                dtype=np.float32,
             )
 
             # UPDATE history to current absolute (bug fix)
             new_last = LastCommand(left=left_abs.copy(), right=right_abs.copy())
         else:
             raise NotImplementedError(f"Unsupported action level: {action_level}")
+
+        self._reward_index += 1
 
         return {"action": action_vec}, new_last

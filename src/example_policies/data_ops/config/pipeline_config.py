@@ -232,6 +232,7 @@ def build_features(config: PipelineConfig) -> Dict[str, Any]:
         raise NotImplementedError(f"Unsupported action level {config.action_level}")
     names += ["gripper_left"]
     names += ["gripper_right"]
+    names += ["reward"]
     features["action"] = {"dtype": "float32", "shape": (len(names),), "names": names}
 
     # Build image features
