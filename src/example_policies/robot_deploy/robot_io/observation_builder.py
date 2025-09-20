@@ -82,6 +82,12 @@ class ObservationBuilder:
         if self.include_tcp:
             state_array.append(tcp_state)
         state_array.append(gripper_state)
+        print(
+            "last_command",
+            last_command,
+            "self.include_last_commands",
+            self.include_last_commands,
+        )
         if self.include_last_commands:
             state_array.append(last_command)
 
