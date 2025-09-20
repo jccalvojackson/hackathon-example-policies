@@ -59,5 +59,4 @@ deploy_policy(
     hz=INFERENCE_FREQUENCY_HZ,
     server=SERVER_ENDPOINT,
     controller=RobotClient.CART_WAYPOINT,
-    with_reward=False,
 )
