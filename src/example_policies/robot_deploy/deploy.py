@@ -28,6 +28,7 @@ from example_policies.robot_deploy.robot_io.robot_service import (
     robot_service_pb2,
     robot_service_pb2_grpc,
 )
+from example_policies.robot_deploy.utils import print_info
 
 
 def keyboard_listener(switch_flag):
