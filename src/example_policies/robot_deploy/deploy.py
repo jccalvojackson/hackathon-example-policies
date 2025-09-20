@@ -35,6 +35,7 @@ from example_policies.robot_deploy.robot_io.robot_service import (
 def inference_loop(
     policy, cfg, hz: float, service_stub: robot_service_pb2_grpc.RobotServiceStub
 ):
+
     robot_interface = RobotInterface(service_stub, cfg)
     model_to_action_trans = ActionTranslator(cfg)
 
