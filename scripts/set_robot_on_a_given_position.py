@@ -100,4 +100,4 @@ if __name__ == "__main__":
             0,
         ]
     )[None, :]
-    main(SERVER_ENDPOINT, tcp_torch_step_3)
+    main(SERVER_ENDPOINT, tcp_torch_step_1)
