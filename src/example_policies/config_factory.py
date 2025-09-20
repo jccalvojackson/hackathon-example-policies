@@ -118,6 +118,7 @@ def original_act_config(
         "n_action_steps": 10,
         "latent_dim": 32,
         "n_decoder_layers": 1,
+        "n_obs_steps": 3,
     }
 
     if policy_kwargs is not None:
