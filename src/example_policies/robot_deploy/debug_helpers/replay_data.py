@@ -21,64 +21,35 @@ import grpc
 # Lerobot Environment Bug
 import numpy as np
 import torch
-from lerobot.configs.default import DatasetConfig
-from lerobot.datasets.lerobot_dataset import LeRobotDataset, LeRobotDatasetMetadata
+from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
 from example_policies.robot_deploy.action_translator import ActionTranslator
-from example_policies.robot_deploy.policy_loader import load_metadata
+from example_policies.robot_deploy.debug_helpers.utils import print_info
+from example_policies.robot_deploy.policy_loader import load_policy
 from example_policies.robot_deploy.robot_io.robot_interface import RobotInterface
 from example_policies.robot_deploy.robot_io.robot_service import (
     robot_service_pb2,
     robot_service_pb2_grpc,
 )
-from example_policies.robot_deploy.utils import print_info
-from example_policies.robot_deploy.utils.action_mode import ActionMode
-
-
-class FakeConfig:
-    def __init__(self, m) -> None:
-        self.metadata = m
-        self.output_features = {}
-        self.input_features = {}
-        self.input_features["observation.state"] = np.asarray(
-            m["features"]["observation.state"]["names"]
-        )
-        self.output_features["action"] = np.asarray(m["features"]["action"]["names"])
 
 
 def inference_loop(
     data_dir: Path,
+    checkpoint_dir: Path,
     service_stub: robot_service_pb2_grpc.RobotServiceStub,
     ep_index: int = 0,
-    replay_frequency: float = 5.0,
-    ask_for_input: bool = True,
 ):
-    """Replay data from a given directory on the robot.
 
-    Args:
-        data_dir (Path): Path to the data directory.
-        service_stub (robot_service_pb2_grpc.RobotServiceStub): gRPC service stub.
-        ep_index (int): Episode index to run.
-        replay_frequency (float): Frequency to replay the data.
-        ask_for_input (bool): Whether to ask for user input at each action.
-    """
-    fake_repo_id = data_dir.name
-    # data_cfg = DatasetConfig(repo_id=fake_repo_id, root=data_dir, episodes=[ep_index])
-
-    meta_data = load_metadata(data_dir)
-    # Wrap in dictionary to emulate policy config
-    cfg = FakeConfig(meta_data)
-    dbg_printer = print_info.InfoPrinter(cfg)
+    policy, cfg = load_policy(checkpoint_dir)
+    robot_interface = RobotInterface(service_stub, cfg)
+    model_to_action_trans = ActionTranslator(cfg)
 
     # We can then instantiate the dataset with these delta_timestamps configuration.
     dataset = LeRobotDataset(
-        repo_id=fake_repo_id,
+        repo_id=data_dir.name,
         root=data_dir,
         episodes=[ep_index],
     )
-
-    robot_interface = RobotInterface(service_stub, cfg)
-    model_to_action_trans = ActionTranslator(cfg)
 
     dataloader = torch.utils.data.DataLoader(
         dataset,
@@ -105,16 +76,17 @@ def inference_loop(
         observation = robot_interface.get_observation("cpu")
         time.sleep(0.1)
 
-    dbg_printer.print(step, observation, action, raw_action=False)
+    print_info(step, observation, action)
 
     input("Press Enter to move robot to start...")
-    robot_interface.send_action(torch.from_numpy(action), ActionMode.ABS_TCP)
+
+    robot_interface.send_action(torch.from_numpy(action))
 
     input("Press Enter to continue...")
-
     # Inference Loop
     print("Starting inference loop...")
-    period = 1.0 / replay_frequency
+    hz = 1.0
+    period = 1.0 / hz
     while not done:
         start_time = time.time()
         observation = robot_interface.get_observation("cpu")
@@ -124,31 +96,16 @@ def inference_loop(
 
             action = batch["action"]
 
-            if ask_for_input:
-                input("Press Enter to send next action...")
-
-            model_to_action_trans.action_mode = ActionMode.DELTA_TCP
-
-            if model_to_action_trans.action_mode in (
-                ActionMode.ABS_TCP,
-                ActionMode.ABS_JOINT,
-            ):
-                raise NotImplementedError(
-                    "Only delta action mode is implemented for replay."
-                )
-
             action = model_to_action_trans.translate(action, observation)
-            dbg_printer.print(step, observation, action, raw_action=False)
+            print_info(step, observation, action)
 
-            robot_interface.send_action(action, model_to_action_trans.action_mode)
+            robot_interface.send_action(action)
             # policy._queues["action"].clear()
 
         # wait for execution to finish
         elapsed_time = time.time() - start_time
         sleep_duration = period - elapsed_time
-
-        print(f"Sleep duration: {sleep_duration} s")
-
+        print(sleep_duration)
         # wait for input
         # input("Press Enter to continue...")
         time.sleep(max(0.0, sleep_duration))
@@ -164,6 +121,13 @@ def main():
         help="Path to the data directory",
     )
     parser.add_argument(
+        "--checkpoint",
+        type=Path,
+        required=True,
+        help="Path to the policy checkpoint directory.",
+    )
+
+    parser.add_argument(
         "--server",
         default="localhost:50051",
         help="Robot service server address (default: localhost:50051)",
@@ -175,30 +139,13 @@ def main():
         default=0,
         help="Episode index to run (default: 0)",
     )
-    parser.add_argument(
-        "--replay-frequency",
-        type=float,
-        default=5.0,
-        help="Frequency to replay the data (default: 5.0 Hz)",
-    )
-    parser.add_argument(
-        "--continuous-replay",
-        action="store_true",
-        help="Whether to continuously loop over the episode and not ask for user input at each action (default: False)",
-    )
 
     args = parser.parse_args()
 
     channel = grpc.insecure_channel(args.server)
     stub = robot_service_pb2_grpc.RobotServiceStub(channel)
     try:
-        inference_loop(
-            args.data_dir,
-            stub,
-            args.episode,
-            replay_frequency=args.replay_frequency,
-            ask_for_input=not args.continuous_replay,
-        )
+        inference_loop(args.data_dir, args.checkpoint, stub, args.episode)
     except Exception as e:
         print(f"Error occurred: {e}")
         raise e

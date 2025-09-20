@@ -13,185 +13,63 @@
 # limitations under the License.
 
 import argparse
-import threading
 import time
 from pathlib import Path
 
 import grpc
+
+# Lerobot Environment Bug
+import numpy as np
 import torch
 
-from example_policies import data_constants as dc
-from example_policies.robot_deploy.action_translator import ActionMode, ActionTranslator
+from example_policies.robot_deploy.action_translator import ActionTranslator
+from example_policies.robot_deploy.debug_helpers.utils import print_info
 from example_policies.robot_deploy.policy_loader import load_policy
-from example_policies.robot_deploy.robot_io.robot_interface import (
-    RobotClient,
-    RobotInterface,
-)
+from example_policies.robot_deploy.robot_io.robot_interface import RobotInterface
 from example_policies.robot_deploy.robot_io.robot_service import (
     robot_service_pb2,
     robot_service_pb2_grpc,
 )
-from example_policies.robot_deploy.utils import print_info
-
-
-def keyboard_listener(switch_flag):
-    """Listen for space bar press to switch policies."""
-    try:
-        import sys
-        import termios
-        import tty
-
-        fd = sys.stdin.fileno()
-        old_settings = termios.tcgetattr(fd)
-        tty.setraw(sys.stdin.fileno())
-
-        while not switch_flag["done"]:
-            char = sys.stdin.read(1)
-            if char == " " and not switch_flag["switched"]:
-                switch_flag["switched"] = True
-                print("\n🔄 Switching to Policy 2!")
-                break
-
-        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-    except ImportError:
-        # Fallback for systems without termios
-        while not switch_flag["done"]:
-            input_char = input()
-            if input_char == "" and not switch_flag["switched"]:  # Enter key
-                switch_flag["switched"] = True
-                print("\n🔄 Switching to Policy 2!")
-                break
-
-
-MINIMUM_X_LEFT_ARM = -10
-
-MINIMUM_Z_RIGHT_ARM = 0.22
-
-LEFT_X_COORD_INDEX = dc.DUAL_LEFT_POS_IDXS.start
-RIGHT_Z_COORD_INDEX = dc.DUAL_RIGHT_POS_IDXS.stop - 1
-
-POLICY_1_NAME = "Policy 1"
-POLICY_2_NAME = "Policy 2"
 
 
 def inference_loop(
-    policy1,
-    *,
-    policy2=None,
-    cfg1,
-    cfg2=None,
-    hz: float,
-    service_stub: robot_service_pb2_grpc.RobotServiceStub,
-    controller: str = None,
+    checkpoint_dir: Path, service_stub: robot_service_pb2_grpc.RobotServiceStub
 ):
-    # Use cfg1 for cfg2 if not provided (backward compatibility)
-    if controller is None:
-        controller = RobotClient.CART_WAYPOINT
-    if cfg2 is None:
-        cfg2 = cfg1
+    # Select your device
+    device = "cpu" if not torch.cuda.is_available() else "cuda"
 
-    # Start with policy 1
-    current_policy = policy1
-    current_policy_name = POLICY_1_NAME
-    current_cfg = cfg1
+    policy, cfg = load_policy(checkpoint_dir)
+    policy.to(device)
 
-    dbg_printer_1 = print_info.InfoPrinter(cfg1)
-    dbg_printer_2 = print_info.InfoPrinter(cfg2)
-    # Create robot interfaces and action translators for both policies
-    robot_interface_1 = RobotInterface(service_stub, cfg1)
-    model_to_action_trans_1 = ActionTranslator(cfg1)
-
-    robot_interface_2 = RobotInterface(service_stub, cfg2)
-    model_to_action_trans_2 = ActionTranslator(cfg2)
-
-    # Start with policy 1's components
-    current_robot_interface = robot_interface_1
-    current_model_to_action_trans = model_to_action_trans_1
-    current_dbg_printer = dbg_printer_1
+    robot_interface = RobotInterface(service_stub, cfg)
+    model_to_action_trans = ActionTranslator(cfg)
 
     step = 0
     done = False
 
-    # Set up policy switching
-    switch_flag = {"switched": False, "done": False}
-
-    # Start keyboard listener thread
-    if policy2 is not None:
-        keyboard_thread = threading.Thread(
-            target=keyboard_listener, args=(switch_flag,), daemon=True
-        )
-        keyboard_thread.start()
-
-        print("⌨️  Press SPACE to switch to Policy 2")
-    print("🤖 Starting inference loop with Policy 1...")
+    # Inference Loop
+    print("Starting inference loop...")
+    hz = 1.5
     period = 1.0 / hz
-
     while not done:
         start_time = time.time()
-
-        # Check if we need to switch policies
-        if switch_flag["switched"]:
-            # Clear queue by re-preparing current execution mode
-            prepare_request = robot_service_pb2.PrepareExecutionRequest()
-            prepare_request.execution_mode = (
-                robot_service_pb2.ExecutionMode.EXECUTION_MODE_CARTESIAN_TARGET_QUEUE
-            )
-            service_stub.PrepareExecution(prepare_request)
-            print("🗑️  Queue cleared before policy switch")
-            print("setting initial position for step 2")
-            current_robot_interface.send_action(
-                dc.TCP_TORCH_STEP_2,
-                ActionMode.ABS_TCP,
-                controller,
-            )
-            # sleep for 3 seconds
-            time.sleep(3)
-
-            # Switch to policy 2 and its corresponding components
-            current_policy = policy2
-            current_cfg = cfg2
-            current_robot_interface = robot_interface_2
-            current_model_to_action_trans = model_to_action_trans_2
-            current_dbg_printer = dbg_printer_2
-            print("✅ Successfully switched to Policy 2!")
-            switch_flag["switched"] = False  # Prevent multiple switches
-            current_policy_name = POLICY_2_NAME
-
-        print(current_policy.config.input_features)
-        observation = current_robot_interface.get_observation(
-            current_cfg.device, show=False
-        )
+        print(policy.config.input_features)
+        observation = robot_interface.get_observation(device, show=False)
 
         if observation:
             # Predict the next action with respect to the current observation
             with torch.inference_mode():
-                action = current_policy.select_action(observation)
-                print("\n=== RAW MODEL PREDICTION ===")
-                current_dbg_printer.print(step, observation, action, raw_action=True)
+                action = policy.select_action(observation)
+                print(f"\n=== RAW MODEL PREDICTION ===")
+                print_info(step, observation, action)
                 print()
-            # left arm to -0.3
-            action: torch.Tensor = current_model_to_action_trans.translate(
-                action, observation
-            )
-            action[0, LEFT_X_COORD_INDEX] = torch.clamp(
-                action[0, LEFT_X_COORD_INDEX],
-                min=MINIMUM_X_LEFT_ARM,
-            )
-            # if current_policy_name == POLICY_2_NAME:
-            action[0, RIGHT_Z_COORD_INDEX] = torch.clamp(
-                action[0, RIGHT_Z_COORD_INDEX],
-                min=MINIMUM_Z_RIGHT_ARM,
-            )
+            action = model_to_action_trans.translate(action, observation)
 
-            print("\n=== ABSOLUTE ROBOT COMMANDS ===")
-            current_dbg_printer.print(step, observation, action, raw_action=False)
+            print(f"\n=== ABSOLUTE ROBOT COMMANDS ===")
+            print_info(step, observation, action)
 
-            print("switched:", switch_flag["switched"])
-            print(f"current policy: {current_policy_name}")
-            current_robot_interface.send_action(
-                action, current_model_to_action_trans.action_mode
-            )
-            # current_policy._queues["action"].clear()
+            robot_interface.send_action(action)
+            # policy._queues["action"].clear()
 
         # wait for execution to finish
         elapsed_time = time.time() - start_time
@@ -202,9 +80,6 @@ def inference_loop(
         time.sleep(max(0.0, sleep_duration))
 
         step += 1
-
-    # Clean up
-    switch_flag["done"] = True
 
 
 def main():
@@ -223,74 +98,10 @@ def main():
     )
     args = parser.parse_args()
 
-    # Select your device
-    device = "cpu" if not torch.cuda.is_available() else "cuda"
-
-    policy, cfg = load_policy(args.checkpoint)
-    policy.to(device)
-
-    deploy_single_policy(policy, cfg, hz=1.5, server=args.server)
-
-
-def deploy_single_policy(policy, cfg, hz: float, server: str):
-    """Deploy a single policy (for command-line usage)."""
-    channel = grpc.insecure_channel(server)
+    channel = grpc.insecure_channel(args.server)
     stub = robot_service_pb2_grpc.RobotServiceStub(channel)
     try:
-        # Simple inference loop for single policy
-        robot_interface = RobotInterface(stub, cfg)
-        model_to_action_trans = ActionTranslator(cfg)
-        step = 0
-        period = 1.0 / hz
-
-        print("🤖 Starting single policy inference loop...")
-
-        while True:
-            start_time = time.time()
-            observation = robot_interface.get_observation(cfg.device, show=False)
-
-            if observation:
-                with torch.inference_mode():
-                    action = policy.select_action(observation)
-                action = model_to_action_trans.translate(action, observation)
-                robot_interface.send_action(action, model_to_action_trans.action_mode)
-
-            elapsed_time = time.time() - start_time
-            time.sleep(max(0.0, period - elapsed_time))
-            step += 1
-
-    except KeyboardInterrupt:
-        print("Stopping...")
-    except Exception as e:
-        print(f"Error occurred: {e}")
-        raise e
-    finally:
-        channel.close()
-        print("Connection closed.")
-
-
-def deploy_policy(
-    policy1,
-    *,
-    policy2=None,
-    cfg1,
-    cfg2=None,
-    hz: float,
-    server: str,
-    controller: str = None,
-):
-    channel = grpc.insecure_channel(server)
-    stub = robot_service_pb2_grpc.RobotServiceStub(channel)
-    try:
-        inference_loop(
-            policy1,
-            policy2=policy2,
-            cfg1=cfg1,
-            cfg2=cfg2,
-            hz=hz,
-            service_stub=stub,
-            controller=controller,
-        )
+        inference_loop(args.checkpoint, stub)
     except Exception as e:
         print(f"Error occurred: {e}")
         raise e

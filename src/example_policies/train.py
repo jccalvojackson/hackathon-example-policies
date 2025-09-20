@@ -13,8 +13,9 @@
 # limitations under the License.
 
 import argparse
-from copy import deepcopy
 from pprint import pprint
+
+from copy import deepcopy
 
 # First Import Numpy. Workaround for torch / lerobot bug
 import numpy
@@ -39,12 +40,12 @@ def select_inputs(include_depth: bool = False):
 def filter_depth(cfg, include_depth: bool = False):
     # --- 2. Inspect Dataset and Select Model Inputs ---
     print("Available dataset features:")
-    for name, feature in cfg.policy.input_features.items():
+    for name, feature in cfg.input_features.items():
         print(f"  - {name}: shape={feature.shape}")
 
     selected_inputs = select_inputs(include_depth)
 
-    input_features = deepcopy(cfg.policy.input_features)
+    input_features = deepcopy(cfg.input_features)
     cfg.policy.input_features = {
         k: v for k, v in input_features.items() if k in selected_inputs
     }
@@ -64,7 +65,7 @@ def main(
     # architecture, dataset, and key hyperparameters.
 
     # cfg, input_features = cf.create_predefined_model_config(...)
-    cfg = cf.smolvla_config(
+    cfg, input_features = cf.smolvla_config(
         data_dir, batch_size, resume_path=resume_path, pretrained_actions=True
     )
 

@@ -38,8 +38,7 @@ class FrameTargeter:
 
     def reset(self):
         self.pause_detection_counter = self.cfg.max_pause_frames
-        self.gripper_stationary_counter = self.cfg.max_pause_frames
-        self._prior_gripper = None
+        self.gripper_active_counter = self.cfg.grace_period_frames
 
     def _is_paused(self, joint_velocity: np.ndarray) -> bool:
         """Checks if the robot is in a paused state."""
@@ -49,24 +48,17 @@ class FrameTargeter:
             self.pause_detection_counter = 0
         return self.pause_detection_counter >= self.cfg.max_pause_frames
 
-    def _is_gripper_stationary(self, gripper_states: np.ndarray) -> bool:
-        """Checks if the gripper has been stationary for a configured duration."""
-        if self._prior_gripper is None:
-            self._prior_gripper = gripper_states
-            # Assume stationary on the first frame
-            return True
-
-        delta = np.abs(gripper_states - self._prior_gripper)
-        self._prior_gripper = gripper_states
-
-        if np.any(delta > 1e-4):
-            # Gripper moved, reset counter
-            self.gripper_stationary_counter = 0
+    def _is_gripper_active(self, joint_velocity: np.ndarray) -> bool:
+        """
+        Checks if the gripper is active (i.e., moving slowly or not at all).
+        This state is used to determine if speed-boosted subsampling should apply.
+        """
+        gripper_velocity_magnitude = np.sum(np.abs(joint_velocity[14:]))
+        if gripper_velocity_magnitude < self.cfg.gripper_active_speed:
+            self.gripper_active_counter += 1
         else:
-            # Gripper is still, increment counter
-            self.gripper_stationary_counter += 1
-
-        return self.gripper_stationary_counter >= self.cfg.max_pause_frames
+            self.gripper_active_counter = 0
+        return self.gripper_active_counter >= self.cfg.grace_period_frames
 
     def determine_targets(
         self, frame_buffer: FrameBuffer, frame_assembler: FrameParser
@@ -76,19 +68,14 @@ class FrameTargeter:
         The logic is prioritized: pause state overrides all others.
         """
         assert frame_buffer.is_complete(), "Frame buffer is not complete"
-        joint_velocity, gripper_states = frame_assembler.parse_velocities(frame_buffer)
+        joint_velocity = frame_assembler.parse_velocities(frame_buffer)
 
-        # Check for stationary state first for pause detection
-        is_gripper_still = self._is_gripper_stationary(gripper_states)
-        is_robot_paused = self._is_paused(joint_velocity)
-
-        if is_robot_paused and is_gripper_still:
+        if self._is_paused(joint_velocity):
             return [DatasetType.PAUSE]
 
-        # Check for active gripper movement for speed boost logic
-        if not is_gripper_still:
+        if self._is_gripper_active(joint_velocity):
             targets = [DatasetType.NO_SPEED_BOOST]
-            if self.gripper_stationary_counter % self.cfg.boost_factor == 0:
+            if self.gripper_active_counter % self.cfg.boost_factor == 0:
                 targets.append(DatasetType.MAIN)
             return targets
 

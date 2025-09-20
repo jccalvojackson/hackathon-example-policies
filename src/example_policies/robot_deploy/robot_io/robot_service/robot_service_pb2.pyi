@@ -21,188 +21,47 @@ from typing import Union as _Union
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from google.protobuf.internal import containers as _containers
-from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
-class ExecutionMode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
-    __slots__ = ()
-    EXECUTION_MODE_UNSPECIFIED: _ClassVar[ExecutionMode]
-    EXECUTION_MODE_CARTESIAN_TARGET_QUEUE: _ClassVar[ExecutionMode]
-    EXECUTION_MODE_CARTESIAN_TARGET: _ClassVar[ExecutionMode]
-    EXECUTION_MODE_JOINT_TARGET: _ClassVar[ExecutionMode]
-    EXECUTION_MODE_CARTESIAN_WAYPOINT: _ClassVar[ExecutionMode]
+class StreamSnapshotRequest(_message.Message):
+    __slots__ = ("frequency_hz",)
+    FREQUENCY_HZ_FIELD_NUMBER: _ClassVar[int]
+    frequency_hz: float
+    def __init__(self, frequency_hz: _Optional[float] = ...) -> None: ...
 
-EXECUTION_MODE_UNSPECIFIED: ExecutionMode
-EXECUTION_MODE_CARTESIAN_TARGET_QUEUE: ExecutionMode
-EXECUTION_MODE_CARTESIAN_TARGET: ExecutionMode
-EXECUTION_MODE_JOINT_TARGET: ExecutionMode
-EXECUTION_MODE_CARTESIAN_WAYPOINT: ExecutionMode
-
-class ResetDriversRequest(_message.Message):
+class GetSnapshotRequest(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
 
-class ResetDriversResponse(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class ResetRobotRequest(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class ResetRobotResponse(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class ResetVisionRequest(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class ResetVisionResponse(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class MoveHomeRequest(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class MoveHomeResponse(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class RecoverErrorsRequest(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class RecoverErrorsResponse(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class PrepareExecutionRequest(_message.Message):
-    __slots__ = ("execution_mode",)
-    EXECUTION_MODE_FIELD_NUMBER: _ClassVar[int]
-    execution_mode: ExecutionMode
-    def __init__(
-        self, execution_mode: _Optional[_Union[ExecutionMode, str]] = ...
-    ) -> None: ...
-
-class PrepareExecutionResponse(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class GetStateRequest(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class StreamStateRequest(_message.Message):
-    __slots__ = ("target_hz",)
-    TARGET_HZ_FIELD_NUMBER: _ClassVar[int]
-    target_hz: float
-    def __init__(self, target_hz: _Optional[float] = ...) -> None: ...
-
-class GetStateResponse(_message.Message):
-    __slots__ = ("current_state",)
-    CURRENT_STATE_FIELD_NUMBER: _ClassVar[int]
-    current_state: State
-    def __init__(
-        self, current_state: _Optional[_Union[State, _Mapping]] = ...
-    ) -> None: ...
-
-class EnqueueCartesianTargetsRequest(_message.Message):
-    __slots__ = ("cartesian_targets",)
-    CARTESIAN_TARGETS_FIELD_NUMBER: _ClassVar[int]
-    cartesian_targets: _containers.RepeatedCompositeFieldContainer[CartesianTarget]
-    def __init__(
-        self,
-        cartesian_targets: _Optional[
-            _Iterable[_Union[CartesianTarget, _Mapping]]
-        ] = ...,
-    ) -> None: ...
-
-class EnqueueCartesianTargetsResponse(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class SetCartesianTargetRequest(_message.Message):
-    __slots__ = ("cartesian_target",)
-    CARTESIAN_TARGET_FIELD_NUMBER: _ClassVar[int]
-    cartesian_target: CartesianTarget
-    def __init__(
-        self, cartesian_target: _Optional[_Union[CartesianTarget, _Mapping]] = ...
-    ) -> None: ...
-
-class SetCartesianTargetResponse(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class SetJointTargetRequest(_message.Message):
-    __slots__ = ("joint_target",)
-    JOINT_TARGET_FIELD_NUMBER: _ClassVar[int]
-    joint_target: JointTarget
-    def __init__(
-        self, joint_target: _Optional[_Union[JointTarget, _Mapping]] = ...
-    ) -> None: ...
-
-class SetJointTargetResponse(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class SetCartesianWaypointRequest(_message.Message):
-    __slots__ = ("cartesian_waypoint",)
-    CARTESIAN_WAYPOINT_FIELD_NUMBER: _ClassVar[int]
-    cartesian_waypoint: CartesianTarget
-    def __init__(
-        self, cartesian_waypoint: _Optional[_Union[CartesianTarget, _Mapping]] = ...
-    ) -> None: ...
-
-class SetCartesianWaypointResponse(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class StreamJointTargetsResponse(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class StreamCartesianTargetsResponse(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class StreamCartesianWaypointsResponse(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class CameraFrame(_message.Message):
-    __slots__ = ("width", "height", "format", "data")
-    WIDTH_FIELD_NUMBER: _ClassVar[int]
-    HEIGHT_FIELD_NUMBER: _ClassVar[int]
+class CameraActual(_message.Message):
+    __slots__ = ("frame_id", "format", "data")
+    FRAME_ID_FIELD_NUMBER: _ClassVar[int]
     FORMAT_FIELD_NUMBER: _ClassVar[int]
     DATA_FIELD_NUMBER: _ClassVar[int]
-    width: int
-    height: int
+    frame_id: str
     format: str
     data: bytes
     def __init__(
         self,
-        width: _Optional[int] = ...,
-        height: _Optional[int] = ...,
+        frame_id: _Optional[str] = ...,
         format: _Optional[str] = ...,
         data: _Optional[bytes] = ...,
     ) -> None: ...
 
-class RobotState(_message.Message):
+class RobotActual(_message.Message):
     __slots__ = ("pose", "velocity")
     POSE_FIELD_NUMBER: _ClassVar[int]
     VELOCITY_FIELD_NUMBER: _ClassVar[int]
     pose: Pose
-    velocity: Twist
+    velocity: float
     def __init__(
         self,
         pose: _Optional[_Union[Pose, _Mapping]] = ...,
-        velocity: _Optional[_Union[Twist, _Mapping]] = ...,
+        velocity: _Optional[float] = ...,
     ) -> None: ...
 
-class JointState(_message.Message):
+class JointActual(_message.Message):
     __slots__ = ("position", "velocity", "effort")
     POSITION_FIELD_NUMBER: _ClassVar[int]
     VELOCITY_FIELD_NUMBER: _ClassVar[int]
@@ -217,19 +76,31 @@ class JointState(_message.Message):
         effort: _Optional[float] = ...,
     ) -> None: ...
 
-class State(_message.Message):
-    __slots__ = ("timestamp_ns", "cameras", "robots", "joints")
+class SnapshotResponse(_message.Message):
+    __slots__ = ("timestamp_ns", "rgb_cameras", "depth_cameras", "robots", "joints")
 
-    class CamerasEntry(_message.Message):
+    class RgbCamerasEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
         VALUE_FIELD_NUMBER: _ClassVar[int]
         key: str
-        value: CameraFrame
+        value: CameraActual
         def __init__(
             self,
             key: _Optional[str] = ...,
-            value: _Optional[_Union[CameraFrame, _Mapping]] = ...,
+            value: _Optional[_Union[CameraActual, _Mapping]] = ...,
+        ) -> None: ...
+
+    class DepthCamerasEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: CameraActual
+        def __init__(
+            self,
+            key: _Optional[str] = ...,
+            value: _Optional[_Union[CameraActual, _Mapping]] = ...,
         ) -> None: ...
 
     class RobotsEntry(_message.Message):
@@ -237,11 +108,11 @@ class State(_message.Message):
         KEY_FIELD_NUMBER: _ClassVar[int]
         VALUE_FIELD_NUMBER: _ClassVar[int]
         key: str
-        value: RobotState
+        value: RobotActual
         def __init__(
             self,
             key: _Optional[str] = ...,
-            value: _Optional[_Union[RobotState, _Mapping]] = ...,
+            value: _Optional[_Union[RobotActual, _Mapping]] = ...,
         ) -> None: ...
 
     class JointsEntry(_message.Message):
@@ -249,176 +120,129 @@ class State(_message.Message):
         KEY_FIELD_NUMBER: _ClassVar[int]
         VALUE_FIELD_NUMBER: _ClassVar[int]
         key: str
-        value: JointState
+        value: JointActual
         def __init__(
             self,
             key: _Optional[str] = ...,
-            value: _Optional[_Union[JointState, _Mapping]] = ...,
+            value: _Optional[_Union[JointActual, _Mapping]] = ...,
         ) -> None: ...
 
     TIMESTAMP_NS_FIELD_NUMBER: _ClassVar[int]
-    CAMERAS_FIELD_NUMBER: _ClassVar[int]
+    RGB_CAMERAS_FIELD_NUMBER: _ClassVar[int]
+    DEPTH_CAMERAS_FIELD_NUMBER: _ClassVar[int]
     ROBOTS_FIELD_NUMBER: _ClassVar[int]
     JOINTS_FIELD_NUMBER: _ClassVar[int]
     timestamp_ns: int
-    cameras: _containers.MessageMap[str, CameraFrame]
-    robots: _containers.MessageMap[str, RobotState]
-    joints: _containers.MessageMap[str, JointState]
+    rgb_cameras: _containers.MessageMap[str, CameraActual]
+    depth_cameras: _containers.MessageMap[str, CameraActual]
+    robots: _containers.MessageMap[str, RobotActual]
+    joints: _containers.MessageMap[str, JointActual]
     def __init__(
         self,
         timestamp_ns: _Optional[int] = ...,
-        cameras: _Optional[_Mapping[str, CameraFrame]] = ...,
-        robots: _Optional[_Mapping[str, RobotState]] = ...,
-        joints: _Optional[_Mapping[str, JointState]] = ...,
-    ) -> None: ...
-
-class Quaternion(_message.Message):
-    __slots__ = ("x", "y", "z", "w")
-    X_FIELD_NUMBER: _ClassVar[int]
-    Y_FIELD_NUMBER: _ClassVar[int]
-    Z_FIELD_NUMBER: _ClassVar[int]
-    W_FIELD_NUMBER: _ClassVar[int]
-    x: float
-    y: float
-    z: float
-    w: float
-    def __init__(
-        self,
-        x: _Optional[float] = ...,
-        y: _Optional[float] = ...,
-        z: _Optional[float] = ...,
-        w: _Optional[float] = ...,
-    ) -> None: ...
-
-class Vector3(_message.Message):
-    __slots__ = ("x", "y", "z")
-    X_FIELD_NUMBER: _ClassVar[int]
-    Y_FIELD_NUMBER: _ClassVar[int]
-    Z_FIELD_NUMBER: _ClassVar[int]
-    x: float
-    y: float
-    z: float
-    def __init__(
-        self,
-        x: _Optional[float] = ...,
-        y: _Optional[float] = ...,
-        z: _Optional[float] = ...,
+        rgb_cameras: _Optional[_Mapping[str, CameraActual]] = ...,
+        depth_cameras: _Optional[_Mapping[str, CameraActual]] = ...,
+        robots: _Optional[_Mapping[str, RobotActual]] = ...,
+        joints: _Optional[_Mapping[str, JointActual]] = ...,
     ) -> None: ...
 
 class Pose(_message.Message):
     __slots__ = ("position", "orientation")
+
+    class Point(_message.Message):
+        __slots__ = ("x", "y", "z")
+        X_FIELD_NUMBER: _ClassVar[int]
+        Y_FIELD_NUMBER: _ClassVar[int]
+        Z_FIELD_NUMBER: _ClassVar[int]
+        x: float
+        y: float
+        z: float
+        def __init__(
+            self,
+            x: _Optional[float] = ...,
+            y: _Optional[float] = ...,
+            z: _Optional[float] = ...,
+        ) -> None: ...
+
+    class Quaternion(_message.Message):
+        __slots__ = ("x", "y", "z", "w")
+        X_FIELD_NUMBER: _ClassVar[int]
+        Y_FIELD_NUMBER: _ClassVar[int]
+        Z_FIELD_NUMBER: _ClassVar[int]
+        W_FIELD_NUMBER: _ClassVar[int]
+        x: float
+        y: float
+        z: float
+        w: float
+        def __init__(
+            self,
+            x: _Optional[float] = ...,
+            y: _Optional[float] = ...,
+            z: _Optional[float] = ...,
+            w: _Optional[float] = ...,
+        ) -> None: ...
+
     POSITION_FIELD_NUMBER: _ClassVar[int]
     ORIENTATION_FIELD_NUMBER: _ClassVar[int]
-    position: Vector3
-    orientation: Quaternion
+    position: Pose.Point
+    orientation: Pose.Quaternion
     def __init__(
         self,
-        position: _Optional[_Union[Vector3, _Mapping]] = ...,
-        orientation: _Optional[_Union[Quaternion, _Mapping]] = ...,
+        position: _Optional[_Union[Pose.Point, _Mapping]] = ...,
+        orientation: _Optional[_Union[Pose.Quaternion, _Mapping]] = ...,
     ) -> None: ...
 
-class Twist(_message.Message):
-    __slots__ = ("linear", "angular")
-    LINEAR_FIELD_NUMBER: _ClassVar[int]
-    ANGULAR_FIELD_NUMBER: _ClassVar[int]
-    linear: Vector3
-    angular: Vector3
+class Gripper(_message.Message):
+    __slots__ = ("width",)
+    WIDTH_FIELD_NUMBER: _ClassVar[int]
+    width: float
+    def __init__(self, width: _Optional[float] = ...) -> None: ...
+
+class RobotDesired(_message.Message):
+    __slots__ = ("pose", "gripper_width")
+    POSE_FIELD_NUMBER: _ClassVar[int]
+    GRIPPER_WIDTH_FIELD_NUMBER: _ClassVar[int]
+    pose: Pose
+    gripper_width: float
     def __init__(
         self,
-        linear: _Optional[_Union[Vector3, _Mapping]] = ...,
-        angular: _Optional[_Union[Vector3, _Mapping]] = ...,
+        pose: _Optional[_Union[Pose, _Mapping]] = ...,
+        gripper_width: _Optional[float] = ...,
     ) -> None: ...
 
-class CartesianTarget(_message.Message):
-    __slots__ = ("robot_poses", "gripper_widths", "robot_stiffness_factors")
+class Target(_message.Message):
+    __slots__ = ("robots",)
 
-    class RobotPosesEntry(_message.Message):
+    class RobotsEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
         VALUE_FIELD_NUMBER: _ClassVar[int]
         key: str
-        value: Pose
+        value: RobotDesired
         def __init__(
             self,
             key: _Optional[str] = ...,
-            value: _Optional[_Union[Pose, _Mapping]] = ...,
+            value: _Optional[_Union[RobotDesired, _Mapping]] = ...,
         ) -> None: ...
 
-    class GripperWidthsEntry(_message.Message):
-        __slots__ = ("key", "value")
-        KEY_FIELD_NUMBER: _ClassVar[int]
-        VALUE_FIELD_NUMBER: _ClassVar[int]
-        key: str
-        value: float
-        def __init__(
-            self, key: _Optional[str] = ..., value: _Optional[float] = ...
-        ) -> None: ...
-
-    class RobotStiffnessFactorsEntry(_message.Message):
-        __slots__ = ("key", "value")
-        KEY_FIELD_NUMBER: _ClassVar[int]
-        VALUE_FIELD_NUMBER: _ClassVar[int]
-        key: str
-        value: float
-        def __init__(
-            self, key: _Optional[str] = ..., value: _Optional[float] = ...
-        ) -> None: ...
-
-    ROBOT_POSES_FIELD_NUMBER: _ClassVar[int]
-    GRIPPER_WIDTHS_FIELD_NUMBER: _ClassVar[int]
-    ROBOT_STIFFNESS_FACTORS_FIELD_NUMBER: _ClassVar[int]
-    robot_poses: _containers.MessageMap[str, Pose]
-    gripper_widths: _containers.ScalarMap[str, float]
-    robot_stiffness_factors: _containers.ScalarMap[str, float]
+    ROBOTS_FIELD_NUMBER: _ClassVar[int]
+    robots: _containers.MessageMap[str, RobotDesired]
     def __init__(
-        self,
-        robot_poses: _Optional[_Mapping[str, Pose]] = ...,
-        gripper_widths: _Optional[_Mapping[str, float]] = ...,
-        robot_stiffness_factors: _Optional[_Mapping[str, float]] = ...,
+        self, robots: _Optional[_Mapping[str, RobotDesired]] = ...
     ) -> None: ...
 
-class JointTarget(_message.Message):
-    __slots__ = ("joint_angles", "gripper_widths", "robot_stiffness_factors")
-
-    class JointAnglesEntry(_message.Message):
-        __slots__ = ("key", "value")
-        KEY_FIELD_NUMBER: _ClassVar[int]
-        VALUE_FIELD_NUMBER: _ClassVar[int]
-        key: str
-        value: float
-        def __init__(
-            self, key: _Optional[str] = ..., value: _Optional[float] = ...
-        ) -> None: ...
-
-    class GripperWidthsEntry(_message.Message):
-        __slots__ = ("key", "value")
-        KEY_FIELD_NUMBER: _ClassVar[int]
-        VALUE_FIELD_NUMBER: _ClassVar[int]
-        key: str
-        value: float
-        def __init__(
-            self, key: _Optional[str] = ..., value: _Optional[float] = ...
-        ) -> None: ...
-
-    class RobotStiffnessFactorsEntry(_message.Message):
-        __slots__ = ("key", "value")
-        KEY_FIELD_NUMBER: _ClassVar[int]
-        VALUE_FIELD_NUMBER: _ClassVar[int]
-        key: str
-        value: float
-        def __init__(
-            self, key: _Optional[str] = ..., value: _Optional[float] = ...
-        ) -> None: ...
-
-    JOINT_ANGLES_FIELD_NUMBER: _ClassVar[int]
-    GRIPPER_WIDTHS_FIELD_NUMBER: _ClassVar[int]
-    ROBOT_STIFFNESS_FACTORS_FIELD_NUMBER: _ClassVar[int]
-    joint_angles: _containers.ScalarMap[str, float]
-    gripper_widths: _containers.ScalarMap[str, float]
-    robot_stiffness_factors: _containers.ScalarMap[str, float]
+class SetTargetRequest(_message.Message):
+    __slots__ = ("targets",)
+    TARGETS_FIELD_NUMBER: _ClassVar[int]
+    targets: _containers.RepeatedCompositeFieldContainer[Target]
     def __init__(
-        self,
-        joint_angles: _Optional[_Mapping[str, float]] = ...,
-        gripper_widths: _Optional[_Mapping[str, float]] = ...,
-        robot_stiffness_factors: _Optional[_Mapping[str, float]] = ...,
+        self, targets: _Optional[_Iterable[_Union[Target, _Mapping]]] = ...
     ) -> None: ...
+
+class SetTargetResponse(_message.Message):
+    __slots__ = ("success", "message")
+    SUCCESS_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    success: bool
+    message: str
+    def __init__(self, success: bool = ..., message: _Optional[str] = ...) -> None: ...
