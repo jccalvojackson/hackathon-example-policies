@@ -161,6 +161,7 @@ def inference_loop(
         observation = current_robot_interface.get_observation(
             current_cfg.device, show=False
         )
+        print(observation)
 
         if observation:
             # Predict the next action with respect to the current observation
