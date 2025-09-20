@@ -29,23 +29,25 @@ print(f"Robot server endpoint: {SERVER_ENDPOINT}")
 print(f"Inference frequency: {INFERENCE_FREQUENCY_HZ} Hz")
 
 
-policy1, cfg = policy_loader.load_policy(CHECKPOINT_DIR)
-policy2, cfg = policy_loader.load_policy(CHECKPOINT_DIR_2)  # Ignore second config
+policy1, cfg1 = policy_loader.load_policy(CHECKPOINT_DIR)
+policy2, cfg2 = policy_loader.load_policy(CHECKPOINT_DIR_2)
 
 print("✅ Both policies loaded successfully!")
 
 
-# Change the device on the config, not the policy!!
-cfg.device = "cuda"
-policy1.to(cfg.device)  # or "cpu"
-policy2.to(cfg.device)  # or "cpu"
+# Change the device on both configs, not the policies!!
+cfg1.device = "cuda"
+cfg2.device = "cuda"
+policy1.to(cfg1.device)  # or "cpu"
+policy2.to(cfg2.device)  # or "cpu"
 policy2.n_action_steps = 10  # Number of actions to predict in each forward pass
 
 
 deploy_policy(
-    policy2,
-    # policy2=policy2,
-    cfg=cfg,
+    policy1,
+    policy2=policy2,
+    cfg1=cfg1,
+    cfg2=cfg2,
     hz=INFERENCE_FREQUENCY_HZ,
     server=SERVER_ENDPOINT,
 )
