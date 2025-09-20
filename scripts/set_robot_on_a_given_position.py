@@ -8,10 +8,8 @@ from example_policies.robot_deploy.action_translator import ActionMode, ActionTr
 from example_policies.robot_deploy.robot_io.robot_client import RobotClient
 from example_policies.robot_deploy.robot_io.robot_interface import (
     RobotInterface,
-    _build_cart_target,
 )
 from example_policies.robot_deploy.robot_io.robot_service import (
-    robot_service_pb2,
     robot_service_pb2_grpc,
 )
 
