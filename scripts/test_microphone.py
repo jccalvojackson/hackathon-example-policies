@@ -30,9 +30,15 @@ def test_microphone_access() -> Optional[object]:
         
         # List available microphones
         print("📋 Available microphones:")
-        mic_list = sr.Microphone.list_microphone_names()
-        for i, name in enumerate(mic_list):
-            print(f"  {i}: {name}")
+        try:
+            mic_list = sr.Microphone.list_microphone_names()
+            if not mic_list:
+                print("  (No microphones found)")
+            else:
+                for i, name in enumerate(mic_list):
+                    print(f"  {i}: {name}")
+        except Exception as e:
+            print(f"  ❌ Could not list microphones: {e}")
         
         # Test default microphone
         mic = sr.Microphone()
@@ -41,6 +47,22 @@ def test_microphone_access() -> Optional[object]:
         
     except Exception as e:
         print(f"❌ Microphone access error: {e}")
+        
+        # Check if this looks like a container issue
+        import os
+        if not os.path.exists('/dev/snd') or not os.listdir('/dev/snd'):
+            print("\n🐳 CONTAINER AUDIO ISSUE DETECTED!")
+            print("   → Your container doesn't have access to audio devices")
+            print("   → This is very common in containerized environments")
+            print("\n💡 SOLUTIONS:")
+            print("   1. Run container-specific test: python scripts/test_container_microphone.py")
+            print("   2. Check audio config: bash scripts/container_audio_helper.sh") 
+            print("   3. Or restart container with audio access:")
+            print("      docker run --device /dev/snd:/dev/snd your-container")
+            print("\n✅ The robot deployment will still work!")
+            print("   → It automatically uses container-compatible mode")
+            print("   → Just run: python scripts/03_deploy_policy.py")
+        
         return None
 
 def test_ambient_noise_calibration(mic) -> Optional[object]:
