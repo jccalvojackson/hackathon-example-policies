@@ -88,7 +88,6 @@ def inference_loop(
 
     # Start with policy 1
     current_policy = policy1
-    current_policy_name = POLICY_1_NAME
     current_cfg = cfg1
 
     dbg_printer_1 = print_info.InfoPrinter(cfg1)
@@ -175,10 +174,10 @@ def inference_loop(
             current_dbg_printer.print(step, observation, action, raw_action=False)
 
             print("switched:", switch_flag["switched"])
-            print(f"current policy: {current_policy_name}")
             current_robot_interface.send_action(
                 action, current_model_to_action_trans.action_mode
             )
+            print("current step:", current_step)
             # current_policy._queues["action"].clear()
 
         # wait for execution to finish
