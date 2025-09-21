@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import argparse
+import signal
+import sys
 import threading
 import time
 from pathlib import Path
@@ -34,6 +36,7 @@ from example_policies.robot_deploy.utils import print_info
 def keyboard_listener(switch_flag):
     """Listen for space bar press to switch policies."""
     try:
+        import select
         import sys
         import termios
         import tty
@@ -42,20 +45,39 @@ def keyboard_listener(switch_flag):
         old_settings = termios.tcgetattr(fd)
         tty.setraw(sys.stdin.fileno())
 
-        while not switch_flag["done"]:
-            char = sys.stdin.read(1)
-            if char == " " and not switch_flag["switched"]:
-                switch_flag["switched"] = True
-                print("\n🔄 Switching to next step!")
+        try:
+            while not switch_flag["done"] and not _shutdown_flag.is_set():
+                # Use select to check if input is available with timeout
+                ready, _, _ = select.select([sys.stdin], [], [], 0.1)
+                if ready:
+                    char = sys.stdin.read(1)
+                    if char == " " and not switch_flag["switched"]:
+                        switch_flag["switched"] = True
+                        print("\n🔄 Switching to next step!")
+                # Check shutdown flag regularly
+                if _shutdown_flag.is_set():
+                    break
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+    except (ImportError, KeyboardInterrupt, OSError):
+        # Fallback for systems without termios or on interrupt
+        try:
+            while not switch_flag["done"] and not _shutdown_flag.is_set():
+                # Use a timeout-based input approach
+                import select
 
-        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-    except ImportError:
-        # Fallback for systems without termios
-        while not switch_flag["done"]:
-            input_char = input()
-            if input_char == "" and not switch_flag["switched"]:  # Enter key
-                switch_flag["switched"] = True
-                print("\n🔄 Switching to next step!")
+                ready, _, _ = select.select([sys.stdin], [], [], 0.5)
+                if ready:
+                    input_char = input()
+                    if input_char == "" and not switch_flag["switched"]:  # Enter key
+                        switch_flag["switched"] = True
+                        print("\n🔄 Switching to next step!")
+                # Check shutdown flag regularly
+                if _shutdown_flag.is_set():
+                    break
+        except (KeyboardInterrupt, EOFError):
+            # Handle interrupt gracefully
+            pass
 
 
 MINIMUM_X_LEFT_ARM = -10
@@ -67,6 +89,15 @@ RIGHT_Z_COORD_INDEX = dc.DUAL_RIGHT_POS_IDXS.stop - 1
 
 POLICY_1_NAME = "Policy 1"
 POLICY_2_NAME = "Policy 2"
+
+# Global shutdown flag for clean exit
+_shutdown_flag = threading.Event()
+
+
+def signal_handler(signum, frame):
+    """Handle interrupt signals for clean shutdown."""
+    print(f"\n🛑 Received interrupt signal ({signum}). Shutting down gracefully...")
+    _shutdown_flag.set()
 
 
 def inference_loop(
@@ -110,88 +141,119 @@ def inference_loop(
 
     print("⌨️  Press SPACE to switch steps: step_1 → step_2 → step_3")
     print("🤖 Starting inference loop with step_1...")
+    print("🛑 Press Ctrl+C at any time to stop the deployment")
     period = 1.0 / hz
 
-    while not done:
-        start_time = time.time()
+    try:
+        while not done and not _shutdown_flag.is_set():
+            start_time = time.time()
 
-        # Check if we need to switch policies
-        if switch_flag["switched"] and current_step == "step_1":
-            current_step = "step_2"
-            current_robot_interface.send_action(
-                dc.TCP_TORCH_STEP_2,
-                ActionMode.ABS_TCP,
-                RobotClient.CART_QUEUE,
-            )
-            # sleep for 3 seconds
-            time.sleep(3)
-            switch_flag["switched"] = False
-        if switch_flag["switched"] and current_step == "step_2":
-            current_step = "step_3"
-            current_robot_interface.send_action(
-                dc.TCP_TORCH_STEP_3,
-                ActionMode.ABS_TCP,
-                RobotClient.CART_QUEUE,
-            )
-            print("setting initial position for step 3")
-            # sleep for 3 seconds
-            time.sleep(3)
-            switch_flag["switched"] = False  # Prevent multiple switches
-            switch_flag["done"] = True  # Stop keyboard listener after reaching step 3
-            print("⌨️  Keyboard listener stopped - no more step switching available")
+            # Check for shutdown signal
+            if _shutdown_flag.is_set():
+                print("\n🛑 Shutdown requested, exiting...")
+                break
 
-        print(current_policy.config.input_features)
-        observation = current_robot_interface.get_observation(
-            current_cfg.device, show=False
-        )
+            # Check if we need to switch policies
+            if switch_flag["switched"] and current_step == "step_1":
+                current_step = "step_2"
+                current_robot_interface.send_action(
+                    dc.TCP_TORCH_STEP_2,
+                    ActionMode.ABS_TCP,
+                    RobotClient.CART_QUEUE,
+                )
+                # sleep for 3 seconds with interrupt checking
+                for _ in range(30):  # 0.1s * 30 = 3s
+                    if _shutdown_flag.is_set():
+                        break
+                    time.sleep(0.1)
+                switch_flag["switched"] = False
 
-        if observation:
-            observation["task"] = current_step
-            # Predict the next action with respect to the current observation
-            with torch.inference_mode():
-                action = current_policy.select_action(observation)
-                print("\n=== RAW MODEL PREDICTION ===")
-                current_dbg_printer.print(step, observation, action, raw_action=True)
-                print()
-            # left arm to -0.3
-            action: torch.Tensor = current_model_to_action_trans.translate(
-                action, observation
-            )
-            action[0, LEFT_X_COORD_INDEX] = torch.clamp(
-                action[0, LEFT_X_COORD_INDEX],
-                min=MINIMUM_X_LEFT_ARM,
-            )
-            # if current_policy_name == POLICY_2_NAME:
-            action[0, RIGHT_Z_COORD_INDEX] = torch.clamp(
-                action[0, RIGHT_Z_COORD_INDEX],
-                min=MINIMUM_Z_RIGHT_ARM,
+            if switch_flag["switched"] and current_step == "step_2":
+                current_step = "step_3"
+                current_robot_interface.send_action(
+                    dc.TCP_TORCH_STEP_3,
+                    ActionMode.ABS_TCP,
+                    RobotClient.CART_QUEUE,
+                )
+                print("setting initial position for step 3")
+                # sleep for 3 seconds with interrupt checking
+                for _ in range(30):  # 0.1s * 30 = 3s
+                    if _shutdown_flag.is_set():
+                        break
+                    time.sleep(0.1)
+                switch_flag["switched"] = False  # Prevent multiple switches
+                switch_flag["done"] = (
+                    True  # Stop keyboard listener after reaching step 3
+                )
+                print("⌨️  Keyboard listener stopped - no more step switching available")
+
+            print(current_policy.config.input_features)
+            observation = current_robot_interface.get_observation(
+                current_cfg.device, show=False
             )
 
-            print("\n=== ABSOLUTE ROBOT COMMANDS ===")
-            current_dbg_printer.print(step, observation, action, raw_action=False)
+            if observation:
+                observation["task"] = current_step
+                # Predict the next action with respect to the current observation
+                with torch.inference_mode():
+                    action = current_policy.select_action(observation)
+                    print("\n=== RAW MODEL PREDICTION ===")
+                    current_dbg_printer.print(
+                        step, observation, action, raw_action=True
+                    )
+                    print()
+                # left arm to -0.3
+                action: torch.Tensor = current_model_to_action_trans.translate(
+                    action, observation
+                )
+                action[0, LEFT_X_COORD_INDEX] = torch.clamp(
+                    action[0, LEFT_X_COORD_INDEX],
+                    min=MINIMUM_X_LEFT_ARM,
+                )
+                # if current_policy_name == POLICY_2_NAME:
+                action[0, RIGHT_Z_COORD_INDEX] = torch.clamp(
+                    action[0, RIGHT_Z_COORD_INDEX],
+                    min=MINIMUM_Z_RIGHT_ARM,
+                )
 
-            print("switched:", switch_flag["switched"])
-            current_robot_interface.send_action(
-                action, current_model_to_action_trans.action_mode
-            )
-            print("current step:", current_step)
-            # current_policy._queues["action"].clear()
+                print("\n=== ABSOLUTE ROBOT COMMANDS ===")
+                current_dbg_printer.print(step, observation, action, raw_action=False)
 
-        # wait for execution to finish
-        elapsed_time = time.time() - start_time
-        sleep_duration = period - elapsed_time
-        print(sleep_duration)
-        # wait for input
-        # input("Press Enter to continue...")
-        time.sleep(max(0.0, sleep_duration))
+                print("switched:", switch_flag["switched"])
+                current_robot_interface.send_action(
+                    action, current_model_to_action_trans.action_mode
+                )
+                print("current step:", current_step)
+                # current_policy._queues["action"].clear()
 
-        step += 1
+            # wait for execution to finish with interrupt checking
+            elapsed_time = time.time() - start_time
+            sleep_duration = max(0.0, period - elapsed_time)
+            print(sleep_duration)
 
-    # Clean up
-    switch_flag["done"] = True
+            # Split sleep into smaller chunks to allow for interrupt handling
+            sleep_chunks = max(1, int(sleep_duration / 0.1))
+            chunk_duration = sleep_duration / sleep_chunks
+            for _ in range(sleep_chunks):
+                if _shutdown_flag.is_set():
+                    break
+                time.sleep(chunk_duration)
+
+            step += 1
+
+    except KeyboardInterrupt:
+        print("\n🛑 KeyboardInterrupt received, shutting down...")
+    finally:
+        # Clean up
+        switch_flag["done"] = True
+        print("🧹 Cleaning up resources...")
 
 
 def main():
+    # Register signal handlers for graceful shutdown
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
     parser = argparse.ArgumentParser(description="Robot service client")
     parser.add_argument(
         "--checkpoint",
@@ -210,10 +272,19 @@ def main():
     # Select your device
     device = "cpu" if not torch.cuda.is_available() else "cuda"
 
-    policy, cfg = load_policy(args.checkpoint)
-    policy.to(device)
+    try:
+        policy, cfg = load_policy(args.checkpoint)
+        policy.to(device)
 
-    deploy_single_policy(policy, cfg, hz=1.5, server=args.server)
+        deploy_single_policy(policy, cfg, hz=1.5, server=args.server)
+    except KeyboardInterrupt:
+        print("\n🛑 Main function interrupted, exiting...")
+    except Exception as e:
+        print(f"Error in main: {e}")
+        sys.exit(1)
+    finally:
+        _shutdown_flag.set()  # Ensure shutdown flag is set
+        print("👋 Goodbye!")
 
 
 def deploy_single_policy(policy, cfg, hz: float, server: str):
@@ -228,9 +299,16 @@ def deploy_single_policy(policy, cfg, hz: float, server: str):
         period = 1.0 / hz
 
         print("🤖 Starting single policy inference loop...")
+        print("🛑 Press Ctrl+C at any time to stop the deployment")
 
-        while True:
+        while not _shutdown_flag.is_set():
             start_time = time.time()
+
+            # Check for shutdown signal
+            if _shutdown_flag.is_set():
+                print("\n🛑 Shutdown requested, exiting...")
+                break
+
             observation = robot_interface.get_observation(cfg.device, show=False)
 
             if observation:
@@ -239,17 +317,28 @@ def deploy_single_policy(policy, cfg, hz: float, server: str):
                 action = model_to_action_trans.translate(action, observation)
                 robot_interface.send_action(action, model_to_action_trans.action_mode)
 
+            # Handle sleep with interrupt checking
             elapsed_time = time.time() - start_time
-            time.sleep(max(0.0, period - elapsed_time))
+            sleep_duration = max(0.0, period - elapsed_time)
+
+            # Split sleep into smaller chunks to allow for interrupt handling
+            sleep_chunks = max(1, int(sleep_duration / 0.1))
+            chunk_duration = sleep_duration / sleep_chunks
+            for _ in range(sleep_chunks):
+                if _shutdown_flag.is_set():
+                    break
+                time.sleep(chunk_duration)
+
             step += 1
 
     except KeyboardInterrupt:
-        print("Stopping...")
+        print("\n🛑 KeyboardInterrupt received, shutting down...")
     except Exception as e:
         print(f"Error occurred: {e}")
         raise e
     finally:
         channel.close()
+        print("🧹 Cleaning up resources...")
         print("Connection closed.")
 
 
@@ -271,11 +360,14 @@ def deploy_policy(
             service_stub=stub,
             controller=controller,
         )
+    except KeyboardInterrupt:
+        print("\n🛑 KeyboardInterrupt received, shutting down...")
     except Exception as e:
         print(f"Error occurred: {e}")
         raise e
     finally:
         channel.close()
+        print("🧹 Cleaning up resources...")
         print("Connection closed.")
 
 
