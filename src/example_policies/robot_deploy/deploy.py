@@ -121,7 +121,7 @@ def inference_loop(
             current_robot_interface.send_action(
                 dc.TCP_TORCH_STEP_2,
                 ActionMode.ABS_TCP,
-                controller,
+                RobotClient.CART_QUEUE,
             )
             # sleep for 3 seconds
             time.sleep(3)
@@ -131,12 +131,14 @@ def inference_loop(
             current_robot_interface.send_action(
                 dc.TCP_TORCH_STEP_3,
                 ActionMode.ABS_TCP,
-                controller,
+                RobotClient.CART_QUEUE,
             )
             print("setting initial position for step 3")
             # sleep for 3 seconds
             time.sleep(3)
             switch_flag["switched"] = False  # Prevent multiple switches
+            switch_flag["done"] = True  # Stop keyboard listener after reaching step 3
+            print("⌨️  Keyboard listener stopped - no more step switching available")
 
         print(current_policy.config.input_features)
         observation = current_robot_interface.get_observation(
