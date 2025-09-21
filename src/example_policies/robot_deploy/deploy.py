@@ -83,7 +83,6 @@ def inference_loop(
     hz: float,
     service_stub: robot_service_pb2_grpc.RobotServiceStub,
     controller: str = None,
-    task: str = None,
 ):
     # Use cfg1 for cfg2 if not provided (backward compatibility)
     if controller is None:
@@ -112,6 +111,7 @@ def inference_loop(
 
     step = 0
     done = False
+    current_step = "step_1"
 
     # Set up policy switching
     switch_flag = {"switched": False, "done": False}
@@ -131,15 +131,16 @@ def inference_loop(
         start_time = time.time()
 
         # Check if we need to switch policies
-        if switch_flag["switched"]:
-            # Clear queue by re-preparing current execution mode
-            prepare_request = robot_service_pb2.PrepareExecutionRequest()
-            prepare_request.execution_mode = (
-                robot_service_pb2.ExecutionMode.EXECUTION_MODE_CARTESIAN_TARGET_QUEUE
-            )
-            service_stub.PrepareExecution(prepare_request)
-            print("🗑️  Queue cleared before policy switch")
-            print("setting initial position for step 2")
+        if switch_flag["switched"] and current_step == "step_1":
+            current_step = "step_2"
+            # # Clear queue by re-preparing current execution mode
+            # prepare_request = robot_service_pb2.PrepareExecutionRequest()
+            # prepare_request.execution_mode = (
+            #     robot_service_pb2.ExecutionMode.EXECUTION_MODE_CARTESIAN_TARGET_QUEUE
+            # )
+            # service_stub.PrepareExecution(prepare_request)
+            # print("🗑️  Queue cleared before policy switch")
+            # print("setting initial position for step 2")
             current_robot_interface.send_action(
                 dc.TCP_TORCH_STEP_2,
                 ActionMode.ABS_TCP,
@@ -157,6 +158,15 @@ def inference_loop(
             print("✅ Successfully switched to Policy 2!")
             switch_flag["switched"] = False  # Prevent multiple switches
             current_policy_name = POLICY_2_NAME
+        if switch_flag["switched"] and current_step == "step_2":
+            current_step = "step_3"
+            current_robot_interface.send_action(
+                dc.TCP_TORCH_STEP_3,
+                ActionMode.ABS_TCP,
+                controller,
+            )
+            print("setting initial position for step 3")
+            time.sleep(3)
 
         print(current_policy.config.input_features)
         observation = current_robot_interface.get_observation(
@@ -164,8 +174,8 @@ def inference_loop(
         )
 
         if observation:
-            if task is not None:
-                observation["task"] = task
+            if current_policy_name == POLICY_2_NAME:
+                observation["task"] = current_step
             # Predict the next action with respect to the current observation
             with torch.inference_mode():
                 action = current_policy.select_action(observation)
@@ -281,7 +291,6 @@ def deploy_policy(
     hz: float,
     server: str,
     controller: str = None,
-    task: str = None,
 ):
     channel = grpc.insecure_channel(server)
     stub = robot_service_pb2_grpc.RobotServiceStub(channel)
@@ -294,7 +303,6 @@ def deploy_policy(
             hz=hz,
             service_stub=stub,
             controller=controller,
-            task=task,
         )
     except Exception as e:
         print(f"Error occurred: {e}")
