@@ -6,8 +6,8 @@ echo "🐧 Installing system audio dependencies for Linux container..."
 # Detect the package manager and install PortAudio
 if command -v apt-get &> /dev/null; then
     echo "📦 Using apt-get (Debian/Ubuntu)..."
-    apt-get update
-    apt-get install -y \
+    sudo apt-get update
+    sudo apt-get install -y \
         portaudio19-dev \
         python3-pyaudio \
         libasound2-dev \
@@ -17,7 +17,7 @@ if command -v apt-get &> /dev/null; then
         
 elif command -v yum &> /dev/null; then
     echo "📦 Using yum (RHEL/CentOS)..."
-    yum install -y \
+    sudo yum install -y \
         portaudio-devel \
         alsa-lib-devel \
         python3-pyaudio \
@@ -25,7 +25,7 @@ elif command -v yum &> /dev/null; then
         
 elif command -v dnf &> /dev/null; then
     echo "📦 Using dnf (Fedora)..."
-    dnf install -y \
+    sudo dnf install -y \
         portaudio-devel \
         alsa-lib-devel \
         python3-pyaudio \
@@ -33,7 +33,7 @@ elif command -v dnf &> /dev/null; then
         
 elif command -v pacman &> /dev/null; then
     echo "📦 Using pacman (Arch)..."
-    pacman -Sy --noconfirm \
+    sudo pacman -Sy --noconfirm \
         portaudio \
         python-pyaudio \
         alsa-lib \

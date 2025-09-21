@@ -35,8 +35,9 @@ def install_system_dependencies():
 
     commands_to_try = [
         # Debian/Ubuntu
-        ["apt-get", "update"],
+        ["sudo", "apt-get", "update"],
         [
+            "sudo",
             "apt-get",
             "install",
             "-y",
