@@ -18,6 +18,7 @@ import time
 from pathlib import Path
 
 import grpc
+import speech_recognition as sr
 import torch
 
 from example_policies import data_constants as dc
@@ -31,31 +32,55 @@ from example_policies.robot_deploy.robot_io.robot_service import robot_service_p
 from example_policies.robot_deploy.utils import print_info
 
 
-def keyboard_listener(switch_flag):
-    """Listen for space bar press to switch policies."""
-    try:
-        import sys
-        import termios
-        import tty
+def voice_listener(switch_flag):
+    """Listen for 'next step' voice command to switch policies."""
+    recognizer = sr.Recognizer()
+    microphone = sr.Microphone()
 
-        fd = sys.stdin.fileno()
-        old_settings = termios.tcgetattr(fd)
-        tty.setraw(sys.stdin.fileno())
+    # Adjust for ambient noise
+    print("🎤 Calibrating microphone for ambient noise...")
+    with microphone as source:
+        recognizer.adjust_for_ambient_noise(source, duration=1)
+    print("✅ Microphone calibrated. Listening for 'next step' commands...")
 
-        while not switch_flag["done"]:
-            char = sys.stdin.read(1)
-            if char == " " and not switch_flag["switched"]:
-                switch_flag["switched"] = True
-                print("\n🔄 Switching to next step!")
+    while not switch_flag["done"]:
+        try:
+            with microphone as source:
+                # Listen for audio with a shorter timeout for better responsiveness
+                audio = recognizer.listen(source, timeout=1, phrase_time_limit=3)
 
-        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-    except ImportError:
-        # Fallback for systems without termios
-        while not switch_flag["done"]:
-            input_char = input()
-            if input_char == "" and not switch_flag["switched"]:  # Enter key
-                switch_flag["switched"] = True
-                print("\n🔄 Switching to next step!")
+            try:
+                # Use Google's speech recognition (requires internet)
+                text = recognizer.recognize_google(audio).lower()
+                print(f"🎤 Heard: '{text}'")
+
+                # Check if "next step" was said
+                if "next step" in text and not switch_flag["switched"]:
+                    switch_flag["switched"] = True
+                    print("\n🔄 Voice command received! Switching to next step!")
+
+            except sr.UnknownValueError:
+                # Speech was unintelligible, continue listening
+                pass
+            except sr.RequestError as e:
+                print(f"❌ Speech recognition service error: {e}")
+                # Fallback to offline recognition if available
+                try:
+                    text = recognizer.recognize_sphinx(audio).lower()
+                    print(f"🎤 Heard (offline): '{text}'")
+                    if "next step" in text and not switch_flag["switched"]:
+                        switch_flag["switched"] = True
+                        print("\n🔄 Voice command received! Switching to next step!")
+                except (sr.UnknownValueError, sr.RequestError):
+                    pass
+
+        except sr.WaitTimeoutError:
+            # No speech detected within timeout, continue listening
+            pass
+        except Exception as e:
+            print(f"❌ Voice recognition error: {e}")
+            # Brief pause before retrying
+            time.sleep(0.5)
 
 
 MINIMUM_X_LEFT_ARM = -10
@@ -102,13 +127,13 @@ def inference_loop(
     # Set up policy switching
     switch_flag = {"switched": False, "done": False}
 
-    # Start keyboard listener thread
-    keyboard_thread = threading.Thread(
-        target=keyboard_listener, args=(switch_flag,), daemon=True
+    # Start voice listener thread
+    voice_thread = threading.Thread(
+        target=voice_listener, args=(switch_flag,), daemon=True
     )
-    keyboard_thread.start()
+    voice_thread.start()
 
-    print("⌨️  Press SPACE to switch steps: step_1 → step_2 → step_3")
+    print("🎤 Say 'next step' to switch steps: step_1 → step_2 → step_3")
     print("🤖 Starting inference loop with step_1...")
     period = 1.0 / hz
 
@@ -137,8 +162,8 @@ def inference_loop(
             # sleep for 3 seconds
             time.sleep(3)
             switch_flag["switched"] = False  # Prevent multiple switches
-            switch_flag["done"] = True  # Stop keyboard listener after reaching step 3
-            print("⌨️  Keyboard listener stopped - no more step switching available")
+            switch_flag["done"] = True  # Stop voice listener after reaching step 3
+            print("🎤 Voice listener stopped - no more step switching available")
 
         print(current_policy.config.input_features)
         observation = current_robot_interface.get_observation(

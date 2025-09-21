@@ -30,13 +30,14 @@ INFERENCE_FREQUENCY_HZ: float = 5.0
 print(f"Attempting to load policy 1 from: {CHECKPOINT_DIR}")
 print(f"Robot server endpoint: {SERVER_ENDPOINT}")
 print(f"Inference frequency: {INFERENCE_FREQUENCY_HZ} Hz")
+print("🎤 Voice control enabled: Say 'next step' to progress through task steps")
 
 
 policy1, cfg1 = policy_loader.load_policy(CHECKPOINT_DIR)
 
 print("✅ Both policies loaded successfully!")
 
-
+# Note: This deployment now uses voice control - say "next step" to progress through steps
 # Change the device on both configs, not the policies!!
 cfg1.device = "cuda"
 policy1.to(cfg1.device)  # or "cpu"
