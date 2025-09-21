@@ -77,9 +77,7 @@ POLICY_2_NAME = "Policy 2"
 def inference_loop(
     policy1,
     *,
-    policy2=None,
     cfg1,
-    cfg2=None,
     hz: float,
     service_stub: robot_service_pb2_grpc.RobotServiceStub,
     controller: str = None,
@@ -87,8 +85,6 @@ def inference_loop(
     # Use cfg1 for cfg2 if not provided (backward compatibility)
     if controller is None:
         controller = RobotClient.CART_WAYPOINT
-    if cfg2 is None:
-        cfg2 = cfg1
 
     # Start with policy 1
     current_policy = policy1
@@ -96,13 +92,9 @@ def inference_loop(
     current_cfg = cfg1
 
     dbg_printer_1 = print_info.InfoPrinter(cfg1)
-    dbg_printer_2 = print_info.InfoPrinter(cfg2)
     # Create robot interfaces and action translators for both policies
     robot_interface_1 = RobotInterface(service_stub, cfg1)
     model_to_action_trans_1 = ActionTranslator(cfg1)
-
-    robot_interface_2 = RobotInterface(service_stub, cfg2)
-    model_to_action_trans_2 = ActionTranslator(cfg2)
 
     # Start with policy 1's components
     current_robot_interface = robot_interface_1
@@ -117,13 +109,12 @@ def inference_loop(
     switch_flag = {"switched": False, "done": False}
 
     # Start keyboard listener thread
-    if policy2 is not None:
-        keyboard_thread = threading.Thread(
-            target=keyboard_listener, args=(switch_flag,), daemon=True
-        )
-        keyboard_thread.start()
+    keyboard_thread = threading.Thread(
+        target=keyboard_listener, args=(switch_flag,), daemon=True
+    )
+    keyboard_thread.start()
 
-        print("⌨️  Press SPACE to switch to Policy 2")
+    print("⌨️  Press SPACE to switch to Policy 2")
     print("🤖 Starting inference loop with Policy 1...")
     period = 1.0 / hz
 
@@ -133,14 +124,6 @@ def inference_loop(
         # Check if we need to switch policies
         if switch_flag["switched"] and current_step == "step_1":
             current_step = "step_2"
-            # # Clear queue by re-preparing current execution mode
-            # prepare_request = robot_service_pb2.PrepareExecutionRequest()
-            # prepare_request.execution_mode = (
-            #     robot_service_pb2.ExecutionMode.EXECUTION_MODE_CARTESIAN_TARGET_QUEUE
-            # )
-            # service_stub.PrepareExecution(prepare_request)
-            # print("🗑️  Queue cleared before policy switch")
-            # print("setting initial position for step 2")
             current_robot_interface.send_action(
                 dc.TCP_TORCH_STEP_2,
                 ActionMode.ABS_TCP,
@@ -148,18 +131,18 @@ def inference_loop(
             )
             # sleep for 3 seconds
             time.sleep(3)
-
-            # Switch to policy 2 and its corresponding components
-            current_policy = policy2
-            current_cfg = cfg2
-            current_robot_interface = robot_interface_2
-            current_model_to_action_trans = model_to_action_trans_2
-            current_dbg_printer = dbg_printer_2
-            print("✅ Successfully switched to Policy 2!")
-            switch_flag["switched"] = False  # Prevent multiple switches
-            current_policy_name = POLICY_2_NAME
+            switch_flag["switched"] = False
         if switch_flag["switched"] and current_step == "step_2":
             current_step = "step_3"
+            current_robot_interface.send_action(
+                dc.TCP_TORCH_STEP_2,
+                ActionMode.ABS_TCP,
+                controller,
+            )
+            # sleep for 3 seconds
+            time.sleep(3)
+            switch_flag["switched"] = False  # Prevent multiple switches
+        if switch_flag["switched"] and current_step == "step_3":
             current_robot_interface.send_action(
                 dc.TCP_TORCH_STEP_3,
                 ActionMode.ABS_TCP,
@@ -167,6 +150,7 @@ def inference_loop(
             )
             print("setting initial position for step 3")
             time.sleep(3)
+            switch_flag["switched"] = False
 
         print(current_policy.config.input_features)
         observation = current_robot_interface.get_observation(
@@ -174,8 +158,7 @@ def inference_loop(
         )
 
         if observation:
-            if current_policy_name == POLICY_2_NAME:
-                observation["task"] = current_step
+            observation["task"] = current_step
             # Predict the next action with respect to the current observation
             with torch.inference_mode():
                 action = current_policy.select_action(observation)
@@ -285,9 +268,7 @@ def deploy_single_policy(policy, cfg, hz: float, server: str):
 def deploy_policy(
     policy1,
     *,
-    policy2=None,
     cfg1,
-    cfg2=None,
     hz: float,
     server: str,
     controller: str = None,
@@ -297,9 +278,7 @@ def deploy_policy(
     try:
         inference_loop(
             policy1,
-            policy2=policy2,
             cfg1=cfg1,
-            cfg2=cfg2,
             hz=hz,
             service_stub=stub,
             controller=controller,
