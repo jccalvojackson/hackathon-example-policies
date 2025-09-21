@@ -197,6 +197,7 @@ def smolvla_config(
     default_kwargs = {
         "chunk_size": 20,
         "n_action_steps": 20,
+        "n_obs_steps": 2,
     }
 
     if policy_kwargs is not None:
