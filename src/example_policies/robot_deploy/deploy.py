@@ -135,22 +135,14 @@ def inference_loop(
         if switch_flag["switched"] and current_step == "step_2":
             current_step = "step_3"
             current_robot_interface.send_action(
-                dc.TCP_TORCH_STEP_2,
-                ActionMode.ABS_TCP,
-                controller,
-            )
-            # sleep for 3 seconds
-            time.sleep(3)
-            switch_flag["switched"] = False  # Prevent multiple switches
-        if switch_flag["switched"] and current_step == "step_3":
-            current_robot_interface.send_action(
                 dc.TCP_TORCH_STEP_3,
                 ActionMode.ABS_TCP,
                 controller,
             )
             print("setting initial position for step 3")
+            # sleep for 3 seconds
             time.sleep(3)
-            switch_flag["switched"] = False
+            switch_flag["switched"] = False  # Prevent multiple switches
 
         print(current_policy.config.input_features)
         observation = current_robot_interface.get_observation(
