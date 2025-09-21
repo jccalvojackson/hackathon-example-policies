@@ -27,10 +27,7 @@ from example_policies.robot_deploy.robot_io.robot_interface import (
     RobotClient,
     RobotInterface,
 )
-from example_policies.robot_deploy.robot_io.robot_service import (
-    robot_service_pb2,
-    robot_service_pb2_grpc,
-)
+from example_policies.robot_deploy.robot_io.robot_service import robot_service_pb2_grpc
 from example_policies.robot_deploy.utils import print_info
 
 
@@ -49,8 +46,7 @@ def keyboard_listener(switch_flag):
             char = sys.stdin.read(1)
             if char == " " and not switch_flag["switched"]:
                 switch_flag["switched"] = True
-                print("\n🔄 Switching to Policy 2!")
-                break
+                print("\n🔄 Switching to next step!")
 
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
     except ImportError:
@@ -59,8 +55,7 @@ def keyboard_listener(switch_flag):
             input_char = input()
             if input_char == "" and not switch_flag["switched"]:  # Enter key
                 switch_flag["switched"] = True
-                print("\n🔄 Switching to Policy 2!")
-                break
+                print("\n🔄 Switching to next step!")
 
 
 MINIMUM_X_LEFT_ARM = -10
@@ -113,8 +108,8 @@ def inference_loop(
     )
     keyboard_thread.start()
 
-    print("⌨️  Press SPACE to switch to Policy 2")
-    print("🤖 Starting inference loop with Policy 1...")
+    print("⌨️  Press SPACE to switch steps: step_1 → step_2 → step_3")
+    print("🤖 Starting inference loop with step_1...")
     period = 1.0 / hz
 
     while not done:
