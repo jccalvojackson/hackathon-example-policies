@@ -11,15 +11,15 @@ from example_policies.config_factory import (
 lerobot_patches.apply_patches()
 
 
-cfg = original_act_config(
-    # repo_id=repo_id,
-    batch_size=16,
-    dataset_root_dir="data/lerobot/mh2_step_3_tcp",
-)
-diff_cfg = diffusion_config(
-    batch_size=16,
-    dataset_root_dir="data/lerobot/mh2_step_3_tcp",
-)
+# cfg = original_act_config(
+#     # repo_id=repo_id,
+#     batch_size=16,
+#     dataset_root_dir="data/lerobot/mh2_step_3_tcp",
+# )
+# diff_cfg = diffusion_config(
+#     batch_size=16,
+#     dataset_root_dir="data/lerobot/mh2_step_3_tcp",
+# )
 
 cfg_smolvla = smolvla_config(
     batch_size=16,
