@@ -34,53 +34,163 @@ from example_policies.robot_deploy.utils import print_info
 
 def voice_listener(switch_flag):
     """Listen for 'next step' voice command to switch policies."""
-    recognizer = sr.Recognizer()
-    microphone = sr.Microphone()
+    try:
+        # Try to use PyAudio-based approach (works on most systems)
+        recognizer = sr.Recognizer()
+        microphone = sr.Microphone()
 
-    # Adjust for ambient noise
-    print("🎤 Calibrating microphone for ambient noise...")
-    with microphone as source:
-        recognizer.adjust_for_ambient_noise(source, duration=1)
-    print("✅ Microphone calibrated. Listening for 'next step' commands...")
+        # Adjust for ambient noise
+        print("🎤 Calibrating microphone for ambient noise...")
+        with microphone as source:
+            recognizer.adjust_for_ambient_noise(source, duration=1)
+        print("✅ Microphone calibrated. Listening for 'next step' commands...")
 
-    while not switch_flag["done"]:
-        try:
-            with microphone as source:
-                # Listen for audio with a shorter timeout for better responsiveness
-                audio = recognizer.listen(source, timeout=1, phrase_time_limit=3)
-
+        while not switch_flag["done"]:
             try:
-                # Use Google's speech recognition (requires internet)
-                text = recognizer.recognize_google(audio).lower()
-                print(f"🎤 Heard: '{text}'")
+                with microphone as source:
+                    # Listen for audio with a shorter timeout for better responsiveness
+                    audio = recognizer.listen(source, timeout=1, phrase_time_limit=3)
 
-                # Check if "next step" was said
-                if "next step" in text and not switch_flag["switched"]:
-                    switch_flag["switched"] = True
-                    print("\n🔄 Voice command received! Switching to next step!")
-
-            except sr.UnknownValueError:
-                # Speech was unintelligible, continue listening
-                pass
-            except sr.RequestError as e:
-                print(f"❌ Speech recognition service error: {e}")
-                # Fallback to offline recognition if available
                 try:
-                    text = recognizer.recognize_sphinx(audio).lower()
-                    print(f"🎤 Heard (offline): '{text}'")
+                    # Use Google's speech recognition (requires internet)
+                    text = recognizer.recognize_google(audio).lower()
+                    print(f"🎤 Heard: '{text}'")
+
+                    # Check if "next step" was said
                     if "next step" in text and not switch_flag["switched"]:
                         switch_flag["switched"] = True
                         print("\n🔄 Voice command received! Switching to next step!")
-                except (sr.UnknownValueError, sr.RequestError):
-                    pass
 
-        except sr.WaitTimeoutError:
-            # No speech detected within timeout, continue listening
-            pass
+                except sr.UnknownValueError:
+                    # Speech was unintelligible, continue listening
+                    pass
+                except sr.RequestError as e:
+                    print(f"❌ Speech recognition service error: {e}")
+                    # Fallback to offline recognition if available
+                    try:
+                        text = recognizer.recognize_sphinx(audio).lower()
+                        print(f"🎤 Heard (offline): '{text}'")
+                        if "next step" in text and not switch_flag["switched"]:
+                            switch_flag["switched"] = True
+                            print(
+                                "\n🔄 Voice command received! Switching to next step!"
+                            )
+                    except (sr.UnknownValueError, sr.RequestError):
+                        pass
+
+            except sr.WaitTimeoutError:
+                # No speech detected within timeout, continue listening
+                pass
+            except Exception as e:
+                print(f"❌ Voice recognition error: {e}")
+                # Brief pause before retrying
+                time.sleep(0.5)
+
+    except Exception as e:
+        print(f"❌ PyAudio initialization failed: {e}")
+        print("🐳 Falling back to container-compatible voice recognition...")
+
+        # Fallback to container-compatible approach
+        container_voice_listener(switch_flag)
+
+
+def container_voice_listener(switch_flag):
+    """Container-compatible voice listener that doesn't require PyAudio."""
+    import os
+    import subprocess
+    import tempfile
+
+    print("🐳 Container voice listener started")
+    print("🎤 Say 'next step' to switch steps")
+    print("⚠️  Make sure audio recording tools are installed (arecord, ffmpeg, or sox)")
+
+    recognizer = sr.Recognizer()
+
+    while not switch_flag["done"]:
+        try:
+            # Record audio to temporary file using system tools
+            temp_file = tempfile.mktemp(suffix=".wav")
+
+            # Try different recording commands
+            recording_commands = [
+                [
+                    "arecord",
+                    "-D",
+                    "default",
+                    "-f",
+                    "cd",
+                    "-t",
+                    "wav",
+                    "-d",
+                    "2",
+                    temp_file,
+                ],
+                ["ffmpeg", "-f", "alsa", "-i", "default", "-t", "2", "-y", temp_file],
+                ["sox", "-d", "-t", "wav", temp_file, "trim", "0", "2"],
+            ]
+
+            recorded = False
+            for cmd in recording_commands:
+                try:
+                    subprocess.run(cmd, check=True, capture_output=True, timeout=3)
+                    if os.path.exists(temp_file) and os.path.getsize(temp_file) > 1000:
+                        recorded = True
+                        break
+                except (
+                    subprocess.CalledProcessError,
+                    subprocess.TimeoutExpired,
+                    FileNotFoundError,
+                ):
+                    continue
+
+            if not recorded:
+                print(
+                    "❌ Could not record audio. Install: apt-get install alsa-utils ffmpeg"
+                )
+                time.sleep(2)
+                continue
+
+            # Transcribe the recorded audio
+            try:
+                with sr.AudioFile(temp_file) as source:
+                    audio = recognizer.record(source)
+
+                try:
+                    text = recognizer.recognize_google(audio).lower()
+                    print(f"🎤 Heard: '{text}'")
+
+                    if "next step" in text and not switch_flag["switched"]:
+                        switch_flag["switched"] = True
+                        print("\n🔄 Voice command received! Switching to next step!")
+
+                except sr.UnknownValueError:
+                    # Speech was unintelligible
+                    pass
+                except sr.RequestError:
+                    # Try offline recognition
+                    try:
+                        text = recognizer.recognize_sphinx(audio).lower()
+                        print(f"🎤 Heard (offline): '{text}'")
+                        if "next step" in text and not switch_flag["switched"]:
+                            switch_flag["switched"] = True
+                            print(
+                                "\n🔄 Voice command received! Switching to next step!"
+                            )
+                    except (sr.UnknownValueError, sr.RequestError):
+                        pass
+
+            except Exception as e:
+                print(f"❌ Audio transcription error: {e}")
+
+            # Clean up temp file
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
+
+            time.sleep(0.5)  # Brief pause between recordings
+
         except Exception as e:
-            print(f"❌ Voice recognition error: {e}")
-            # Brief pause before retrying
-            time.sleep(0.5)
+            print(f"❌ Container voice recognition error: {e}")
+            time.sleep(1)
 
 
 MINIMUM_X_LEFT_ARM = -10
