@@ -25,7 +25,7 @@ if wandb_checkpoint_path:
 SERVER_ENDPOINT = "192.168.0.207:50051"
 
 # Inference frequency in Hz. Higher values result in smoother but potentially faster movements.
-INFERENCE_FREQUENCY_HZ: float = 5.0
+INFERENCE_FREQUENCY_HZ: float = 6.0
 
 print(f"Attempting to load policy 1 from: {CHECKPOINT_DIR}")
 print(f"Robot server endpoint: {SERVER_ENDPOINT}")
